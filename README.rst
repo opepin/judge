@@ -49,7 +49,13 @@ Prerequisites
 Judge obtains information on various Magento versions from a database that needs
 to be created before running the tool. Restore the database dump from
 `judge.sql.zip` (included in the root directory) and set your database
-credentials via Configuration_.
+credentials via MageCompatibility_ configuration.
+
+To perform code coverage tests via PHPUnit, a Magento installation must be available,
+inluding both, the extension to be checked and the EcomDev_PHPUnit extension. If
+you do not have a running installation prepared, Jumpstorm can be used to set up the
+environment. However, information on the Magento installation must be given in
+a separate configuration file which is referenced in the main CodeCoverage_ configuration.
 
 Configuration
 -------------

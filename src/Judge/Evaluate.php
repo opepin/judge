@@ -59,6 +59,7 @@ class Evaluate extends Command
         $results = array();
 
         foreach (explode(',', $input->getArgument('extensions')) as $extensionPath) {
+            $extensionPath = realpath($extensionPath);
             $plugins = $this->config->getPlugins();
             foreach ($plugins as $name => $settings) {
                 $results[$extensionPath] = 0;

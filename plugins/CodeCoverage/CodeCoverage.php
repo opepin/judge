@@ -4,6 +4,7 @@ namespace CodeCoverage;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\PluginInterface as JudgePlugin;
+use \Zend_Exception as Exception;
 
 class CodeCoverage implements JudgePlugin
 {
@@ -29,18 +30,15 @@ class CodeCoverage implements JudgePlugin
     {
         $config = new \MageCompatibility\Extension\Config();
         $this->modulePrefixes = $config->getUnitTestPrefixes($extensionPath);
-        $score = $this->settings->good;
         if (0 == count($this->modulePrefixes)) {
             $score = $this->settings->bad;
-            Logger::addComment(
-                $extensionPath,
-                $this->name,
-                'No tests found for extension'
-            );
-        } else {
-            $this->setUpEnv($extensionPath);
-            $score = $this->evaluateTestCoverage($extensionPath);
+            Logger::addComment($extensionPath, $this->name, 'No tests found for extension');
+            return $score;
         }
+
+        $this->setupUnitTestEnvironment($extensionPath);
+
+        $score = $this->evaluateTestCoverage($extensionPath);
         Logger::setScore($extensionPath, $this->name, $score);
         return $score;
     }
@@ -66,7 +64,7 @@ class CodeCoverage implements JudgePlugin
         if (0 < count($this->modulePrefixes)) {
             $modulePrefixString = '"' . implode('|', $this->modulePrefixes) . '"';
             $phpUnitCoverageFile = 'codecoverage.xml';
-            $params = '--coverage-clover ' . $phpUnitCoverageFile .' --filter ' . $modulePrefixString;
+            $params = '--coverage-clover ' . $phpUnitCoverageFile .' --filter ' . $modulePrefixString .' --include-path ' . $this->config->common->magento->target;
             if (0 < count($paramsArray)) {
                 $params .= implode(' ', $paramsArray);
             }
@@ -242,12 +240,37 @@ class CodeCoverage implements JudgePlugin
     }
 
 
-    protected function setUpEnv($extensionPath)
+    /**
+     * Check if all prerequisites for running unit tests are fullfilled or can
+     * be fulfilled by using Jumpstorm.
+     *
+     * @param string $extensionPath Path to the extension to be evaluated
+     */
+    protected function setupUnitTestEnvironment($extensionPath)
     {
-        $executable = 'vendor/netresearch/jumpstorm/jumpstorm';
+        // import test environment configuration from console: [extensions] section
+        $this->config->extensions = array(
+            basename($extensionPath) => array('source' => $extensionPath)
+        );
 
-        if ($this->settings->useJumpstorm == true) {
-            $iniFile = $this->generateJumpstormConfig($extensionPath);
+        // import test environment configuration from separate ini: [common], [magento], [unittesting] sections
+        if (!$this->settings->jumpstormIniFile) {
+            throw new Exception("Required information missing in ini file: plugins.CodeCoverage.jumpstormIniFile");
+        }
+        $jumpStormConfig = new Config($this->settings->jumpstormIniFile);
+
+        $requiredSections = array('common', 'magento', 'unittesting');
+        foreach ($requiredSections as $section) {
+            if (!$jumpStormConfig->{$section}) {
+                throw new Exception("Required information missing in jumpstorm ini file: [$section]");
+            }
+
+            $this->config->{$section} = $jumpStormConfig->{$section};
+        }
+
+        // force (re)installation using jumpstorm
+        if ($this->settings->useJumpstorm) {
+            $executable = 'vendor/netresearch/jumpstorm/jumpstorm';
             $params = '';
             $exec = 'exec';
             if (Logger::VERBOSITY_MAX == Logger::getVerbosity()) {
@@ -257,7 +280,7 @@ class CodeCoverage implements JudgePlugin
                 . ' && ' . sprintf('%s unittesting -c %s %s', $executable, $iniFile, $params)
                 . ' && ' . sprintf('%s extensions -c %s %s', $executable, $iniFile, $params);
 
-            Logger::notice('Setting Up Magento environment via jumpström');
+            Logger::notice('Setting up Magento environment via Jumpstorm');
             if (Logger::VERBOSITY_MAX == Logger::getVerbosity()) {
                 $error = passthru($command);
             } else {
@@ -274,36 +297,12 @@ class CodeCoverage implements JudgePlugin
                 Logger::error('Magento installation failed');
             }
         }
+
         if (!is_file($this->config->common->magento->target . DIRECTORY_SEPARATOR . 'UnitTests.php')) {
-            $iniFile = $this->generateJumpstormConfig($extensionPath);
-            Logger::notice('Installing Unit Testing environment via jumpström');
-            $installUnitTestingCommand  = 'unittesting -c ' . $iniFile;
-            exec(sprintf('%s %s', $executable, $installUnitTestingCommand), $output);
+            throw new Exception(sprintf(
+                "No UnitTests.php found in Magento root directory (%s)",
+                $this->config->common->magento->target
+            ));
         }
     }
-
-
-
-    /**
-     * @throws Zend_Config_Exception if config could not be written
-     * @param string $extensionPath
-     * @return string path to jumpstorm config file
-     */
-    protected function generateJumpstormConfig($extensionPath)
-    {
-        $this->config->extensions = array('ext' => array('source' => $extensionPath));
-        if ($this->settings->jumpstormIniFile) {
-            $jumpStormConfig = new Config($this->settings->jumpstormIniFile);
-            $this->config->common      = $jumpStormConfig->common;
-            $this->config->magento     = $jumpStormConfig->magento;
-            $this->config->unittesting = $jumpStormConfig->unittesting;
-        }
-        $filename = dirname(__FILE__) . DIRECTORY_SEPARATOR .'config.ini';
-        $writer = new \Zend_Config_Writer_Ini();
-        $writer->write($filename, $this->config);
-        return $filename;
-    }
-
-
-
 }

@@ -66,6 +66,12 @@ class Config
         return $configFiles;
     }
 
+    /**
+     * Look for PHPUnit configuration within the extension's config file.
+     *
+     * @param string $path Path to the extension to be evalulated
+     * @return array Entries in format "NameSpace_ModuleName"
+     */
     public function getUnitTestPrefixes($path)
     {
         $configFiles = $this->getConfigFilesWithPhpUnitSuites($path);
