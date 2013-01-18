@@ -8,11 +8,31 @@ use \Zend_Exception as Exception;
 
 class CodeCoverage implements JudgePlugin
 {
+    /**
+     * The global Judge configuration
+     * @var \Zend_Config_Ini
+     */
     protected $config;
-    protected $extensionPath;
+
+    /**
+     * The local plugin configuration
+     * @var \Zend_Config_Ini
+     */
     protected $settings;
-    protected $results;
-    protected $modulePrefixes = array();
+
+    /**
+     * The filesystem path to the Magento installation
+     * @var string
+     */
+    protected $magentoTarget;
+
+    /**
+     * The names of the extensions to be evaluated as given given in their
+     * config.xml file, <phpunit> section.
+     * @link http://www.ecomdev.org/2011/02/01/phpunit-and-magento-yes-you-can.html
+     * @var array
+     */
+    protected $moduleNames;
 
     public function __construct(Config $config)
     {
@@ -22,15 +42,22 @@ class CodeCoverage implements JudgePlugin
     }
 
     /**
+     * Execute the CodeCoverage plugin (entry point)
      *
-     * @param string $extensionPath the path to the extension to check
-     * @return float the score for the extension for this test
+     * @param string $extensionPath The path to the extension to check
+     * @return float The test result (score)
+     * @throws \Zend_Exception
      */
     public function execute($extensionPath)
     {
-        $config = new \MageCompatibility\Extension\Config();
-        $this->modulePrefixes = $config->getUnitTestPrefixes($extensionPath);
-        if (0 == count($this->modulePrefixes)) {
+        // xdebug is mandatory for code coverage test
+        if (!extension_loaded('xdebug')) {
+            throw new Exception("The Xdebug extension is not loaded.");
+        }
+
+        // scan for phpunit configuration
+        $this->moduleNames = XmlReader::getModuleNames($extensionPath);
+        if (empty($this->moduleNames)) {
             $score = $this->settings->bad;
             Logger::addComment($extensionPath, $this->name, 'No tests found for extension');
             return $score;
@@ -55,70 +82,73 @@ class CodeCoverage implements JudgePlugin
     {
         $score = $this->settings->good;
         $executable = 'vendor/bin/phpunit';
-        $codeCoverages  = array();
-        $phpUnitOutput  = array();
-        $paramsArray    = array();
-        if (isset($this->settings->PHPUnitParams)) {
-            $paramsArray = $this->settings->PHPUnitParams->toArray();
-        }
-        if (0 < count($this->modulePrefixes)) {
-            $modulePrefixString = '"' . implode('|', $this->modulePrefixes) . '"';
-            $phpUnitCoverageFile = 'codecoverage.xml';
-            $params = '--coverage-clover ' . $phpUnitCoverageFile .' --filter ' . $modulePrefixString .' --include-path ' . $this->config->common->magento->target;
-            if (0 < count($paramsArray)) {
-                $params .= implode(' ', $paramsArray);
-            }
-            $execString = $executable . ' ' . $params . ' ' .  $this->config->common->magento->target . DIRECTORY_SEPARATOR . 'UnitTests.php';
-            exec($execString, $phpUnitOutput);
-            $pdependSummaryFile = 'summary.xml';
-            $execString = sprintf('vendor/pdepend/pdepend/src/bin/pdepend --summary-xml="%s" "%s"', $pdependSummaryFile, $extensionPath);
-            exec($execString);
-            $phpUnitXpaths = array();
-            foreach ($this->modulePrefixes as $modulePrefixString) {
-                $phpUnitXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')]/../metrics";
-            }
-            $codeCoverages = $this->evaluateCodeCoverage($phpUnitCoverageFile, $phpUnitXpaths);
-            $codeCoverageSettings = $this->settings->phpUnitCodeCoverages->toArray();
-            foreach (array_keys($codeCoverageSettings) as $codeCoverageType) {
-                if (array_key_exists($codeCoverageType, $codeCoverages)) {
-                    Logger::addComment(
-                        $extensionPath,
-                        $this->name,
-                        sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType)
-                    );
-                    Logger::notice(sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType));
-                    if ($codeCoverages[$codeCoverageType] < $codeCoverageSettings[$codeCoverageType]) {
-                        $score = $this->settings->bad;
-                    }
-                }
-            }
-            // compare phpunit test results with pdepend
-            $phpUnitXpaths = array();
-            $pdependXpaths = array();
-            foreach ($this->modulePrefixes as $modulePrefixString) {
-                $phpUnitXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')]";
-                $pdependXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')  and not(starts-with(@name, '" . $modulePrefixString . '_Test' . "'))]";
-            }
-            $phpUnitClasses = $this->getClasses($phpUnitCoverageFile, $phpUnitXpaths);
-            $pdependClasses = $this->getClasses($pdependSummaryFile, $pdependXpaths);
-            $notCoveredClasses = array_diff($pdependClasses, $phpUnitClasses);
+        $phpUnitCoverageFile = 'codecoverage.xml';
 
-            if (0 < sizeof($notCoveredClasses)) {
-                if ($this->settings->allowedNotCoveredClasses < sizeof($notCoveredClasses)) {
+        $phpUnitSwitches = array(
+            sprintf("--coverage-clover %s", $phpUnitCoverageFile),
+            sprintf("--filter %s", implode('|', $this->moduleNames)),
+            sprintf("--include-path %s", $this->magentoTarget)
+        );
+        if (isset($this->settings->phpUnitSwitches)) {
+            $phpUnitSwitches = array_merge(
+                $phpUnitSwitches,
+                $this->settings->phpUnitSwitches->toArray()
+            );
+        }
+        $switches = implode(' ', $phpUnitSwitches);
+        $testFile = $this->magentoTarget . '/UnitTests.php';
+        exec("$executable $switches $testFile");
+
+
+
+
+        $pdependSummaryFile = 'summary.xml';
+        $execString = sprintf('vendor/pdepend/pdepend/src/bin/pdepend --summary-xml="%s" "%s"', $pdependSummaryFile, $extensionPath);
+        exec($execString);
+        $phpUnitXpaths = array();
+        foreach ($this->moduleNames as $modulePrefixString) {
+            $phpUnitXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')]/../metrics";
+        }
+        $codeCoverages = $this->evaluateCodeCoverage($phpUnitCoverageFile, $phpUnitXpaths);
+        $codeCoverageSettings = $this->settings->phpUnitCodeCoverages->toArray();
+        foreach (array_keys($codeCoverageSettings) as $codeCoverageType) {
+            if (array_key_exists($codeCoverageType, $codeCoverages)) {
+                Logger::addComment(
+                    $extensionPath,
+                    $this->name,
+                    sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType)
+                );
+                Logger::notice(sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType));
+                if ($codeCoverages[$codeCoverageType] < $codeCoverageSettings[$codeCoverageType]) {
                     $score = $this->settings->bad;
                 }
-                foreach ($notCoveredClasses as $notCoveredClass) {
-
-                    Logger::notice(
-                        '<comment>Following class is not covered by any test: ' . $notCoveredClass . ' </comment>'
-                    );
-                }
             }
-            unlink($pdependSummaryFile);
-            unlink($phpUnitCoverageFile);
-        } else {
-            $score = $this->settings->bad;
         }
+
+        // compare phpunit test results with pdepend
+        $phpUnitXpaths = array();
+        $pdependXpaths = array();
+        foreach ($this->moduleNames as $modulePrefixString) {
+            $phpUnitXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')]";
+            $pdependXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')  and not(starts-with(@name, '" . $modulePrefixString . '_Test' . "'))]";
+        }
+        $phpUnitClasses = $this->getClasses($phpUnitCoverageFile, $phpUnitXpaths);
+        $pdependClasses = $this->getClasses($pdependSummaryFile, $pdependXpaths);
+        $notCoveredClasses = array_diff($pdependClasses, $phpUnitClasses);
+
+        if (0 < sizeof($notCoveredClasses)) {
+            if ($this->settings->allowedNotCoveredClasses < sizeof($notCoveredClasses)) {
+                $score = $this->settings->bad;
+            }
+            foreach ($notCoveredClasses as $notCoveredClass) {
+                Logger::notice(
+                    '<comment>Following class is not covered by any test: ' . $notCoveredClass . ' </comment>'
+                );
+            }
+        }
+        unlink($pdependSummaryFile);
+        unlink($phpUnitCoverageFile);
+
         return $score;
     }
 
@@ -245,31 +275,43 @@ class CodeCoverage implements JudgePlugin
      * be fulfilled by using Jumpstorm.
      *
      * @param string $extensionPath Path to the extension to be evaluated
+     * @throws \Zend_Exception
      */
     protected function setupUnitTestEnvironment($extensionPath)
     {
-        // import test environment configuration from console: [extensions] section
-        $this->config->extensions = array(
-            basename($extensionPath) => array('source' => $extensionPath)
-        );
-
-        // import test environment configuration from separate ini: [common], [magento], [unittesting] sections
         if (!$this->settings->jumpstormIniFile) {
             throw new Exception("Required information missing in ini file: plugins.CodeCoverage.jumpstormIniFile");
         }
-        $jumpStormConfig = new Config($this->settings->jumpstormIniFile);
 
-        $requiredSections = array('common', 'magento', 'unittesting');
-        foreach ($requiredSections as $section) {
-            if (!$jumpStormConfig->{$section}) {
-                throw new Exception("Required information missing in jumpstorm ini file: [$section]");
-            }
-
-            $this->config->{$section} = $jumpStormConfig->{$section};
+        $jumpstormConfig = new \Zend_Config_Ini(
+            $this->settings->jumpstormIniFile,
+            null,
+            array('allowModifications' => true)
+        );
+        // check if required ini section is given
+        if (!$jumpstormConfig->common) {
+            throw new Exception("Required information missing in jumpstorm ini file: [common]");
         }
+        $this->magentoTarget = rtrim($jumpstormConfig->common->magento->target, DIRECTORY_SEPARATOR);
+
+        // import test environment configuration from console: [extensions] section
+        $jumpstormConfig->extensions = array(
+            'extension' => array('source' => $extensionPath)
+        );
 
         // force (re)installation using jumpstorm
         if ($this->settings->useJumpstorm) {
+            $requiredSections = array('magento', 'unittesting');
+            foreach ($requiredSections as $section) {
+                if (!$jumpstormConfig->{$section}) {
+                    throw new Exception("Required information missing in jumpstorm ini file: [$section]");
+                }
+            }
+
+            $iniFile = 'tmp/jumpstorm.ini';
+            $writer = new \Zend_Config_Writer_Ini();
+            $writer->write($iniFile, $jumpstormConfig);
+
             $executable = 'vendor/netresearch/jumpstorm/jumpstorm';
             $params = '';
             $exec = 'exec';
@@ -296,12 +338,13 @@ class CodeCoverage implements JudgePlugin
             if ($error) {
                 Logger::error('Magento installation failed');
             }
+            unlink($iniFile);
         }
 
-        if (!is_file($this->config->common->magento->target . DIRECTORY_SEPARATOR . 'UnitTests.php')) {
+        if (!is_file($this->magentoTarget . '/UnitTests.php')) {
             throw new Exception(sprintf(
                 "No UnitTests.php found in Magento root directory (%s)",
-                $this->config->common->magento->target
+                $this->magentoTarget
             ));
         }
     }

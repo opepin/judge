@@ -53,9 +53,13 @@ credentials via MageCompatibility_ configuration.
 
 To perform code coverage tests via PHPUnit, a Magento installation must be available,
 inluding both, the extension to be checked and the EcomDev_PHPUnit extension. If
-you do not have a running installation prepared, Jumpstorm can be used to set up the
-environment. However, information on the Magento installation must be given in
-a separate configuration file which is referenced in the main CodeCoverage_ configuration.
+you do not have a running installation prepared, Jumpstorm can be used to set up
+the environment. However, information on the Magento installation must be given
+in a separate configuration file which is referenced in the main CodeCoverage_
+configuration. If you already installed a Magento, the ``[common]`` section is
+sufficient. When installing via Jumpstorm, the sections ``[magento]`` and
+``[unittesting]`` must be specified additionally. Have a look at the sample ini
+for reference.
 
 Configuration
 -------------

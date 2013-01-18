@@ -12,6 +12,11 @@
         "symfony/console":                                  "2.0.x-dev",
         "symfony/class-loader":                             "2.0.x-dev",
         "mthaml/mthaml":                                    "dev-master",
+        "pear-pear.symfony.com/Yaml":                       "*",
+        "pear-pear.phpunit.de/PHP_Invoker":                 "*",
+        "pear-pear.phpunit.de/PHPUnit_Selenium":            "*",
+        "pear-pear.phpunit.de/PHPUnit_Story":               "*",
+        "pear-pear.phpunit.de/DbUnit":                      "*",
         "pear-pear.phpunit.de/phpcpd":                      "*",
         "pear-bartlett.laurent-laville.org/PHP_CompatInfo": "2.9.0",
         "pear-pear.netpirates.net/fDOMDocument":            "*"
@@ -30,6 +35,10 @@
         {
             "type": "pear",
             "url": "pear.php.net"
+        },
+        {
+            "type": "pear",
+            "url": "pear.symfony.com"
         },
         {
             "type": "pear",

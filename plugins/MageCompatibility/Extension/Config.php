@@ -57,32 +57,4 @@ class Config
         }
         return $tables;
     }
-
-
-    protected function getConfigFilesWithPhpUnitSuites($path)
-    {
-        $command = 'grep -rl -m1 --include "config.xml" "\<phpunit>" ' . $path;
-        exec($command, $configFiles);
-        return $configFiles;
-    }
-
-    /**
-     * Look for PHPUnit configuration within the extension's config file.
-     *
-     * @param string $path Path to the extension to be evalulated
-     * @return array Entries in format "NameSpace_ModuleName"
-     */
-    public function getUnitTestPrefixes($path)
-    {
-        $configFiles = $this->getConfigFilesWithPhpUnitSuites($path);
-        $modulePrefixes = array();
-        foreach ($configFiles as $configFile) {
-            $config = simplexml_load_file($configFile);
-            $moduleNames = $config->xpath('//phpunit/suite/modules/*');
-            foreach ($moduleNames as $moduleName) {
-                $modulePrefixes[] = $moduleName->getName();
-            }
-        }
-        return $modulePrefixes;
-    }
 }
