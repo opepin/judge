@@ -11,12 +11,14 @@ class SourceCodeComplexity implements JudgePlugin
     protected $extensionPath;
     protected $settings;
     protected $results;
+    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -56,16 +58,31 @@ class SourceCodeComplexity implements JudgePlugin
             $score = $this->settings->phpMessDetector->bad;
             foreach ($mdResults as $issue) {
                 Logger::addComment(
-                    $extensionPath,
-                    $this->name,
-                    '<comment>Mess detector found an issue:</comment>' . $issue
+                        $extensionPath, $this->name, '<comment>Mess detector found an issue:</comment>' . $issue
                 );
             }
+            
+            //prepare comment for db log
+            $comment = '';
+            $commentParts = explode(" ", $issue, 2);
+            if (count($commentParts) > 1)
+                $comment = $commentParts[1];
+
+            $fileParts = explode(":", $commentParts[0]);
+            if (count($fileParts) > 1) {
+                $fileName = $fileParts[0];
+                $lineNumber = $fileParts[1];
+
+                $this->issueHandler->addDetail('lineNumber', $lineNumber);
+                $this->issueHandler->addFilesForIssue(array($fileName));
+            }
+
+            $this->issueHandler->addIssue($this->name, 'mess_detector', $commentParts[0]);
+            $this->issueHandler->save();
+            
         } else {
             Logger::addComment(
-                $extensionPath,
-                $this->name,
-                '<info>Mess detector found ' . count($mdResults) . ' results only</info>'
+                    $extensionPath, $this->name, '<info>Mess detector found ' . count($mdResults) . ' results only</info>'
             );
         }
         return $score;
@@ -95,6 +112,8 @@ class SourceCodeComplexity implements JudgePlugin
                     $this->name,
                     '<comment>Critical metric ' . $metricName . ' value: ' . $metricValue . '</comment>'
                 );
+                $this->issueHandler->addIssue($this->name, $metricName, $metricValue);
+                $this->issueHandler->save();
                 ++ $metricViolations;
             }
         }
@@ -142,6 +161,10 @@ class SourceCodeComplexity implements JudgePlugin
                 $this->name,
                 sprintf('<comment>Extension contains %s%% of duplicated code.</comment>', $cpdPercentage)
             );
+            
+            $this->issueHandler->addIssue($this->name, 'duplicated_code', $cpdPercentage);
+            $this->issueHandler->save();
+            
             return $this->settings->phpcpd->bad;
         }
         return $this->settings->phpcpd->good;

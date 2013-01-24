@@ -15,12 +15,14 @@ class CheckStyle implements JudgePlugin
         'errors'    => array(),
         'warnings'  => array()
     );
+    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -132,6 +134,10 @@ class CheckStyle implements JudgePlugin
                     $this->name,
                     $comment
                 );
+                
+                $this->issueHandler->addDetail('counts', $count);
+                $this->issueHandler->addIssue($this->name, $issueType, $message);
+                $this->issueHandler->save();
             }
         }
     }

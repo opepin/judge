@@ -11,12 +11,14 @@ class CodeRuin implements JudgePlugin
     protected $extensionPath;
     protected $settings;
     protected $results;
+    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -61,6 +63,12 @@ class CodeRuin implements JudgePlugin
                     $token,
                     implode(', ', $filesWithThatToken)
                 ));
+                
+                $this->issueHandler->addFilesForIssue($filesWithThatToken);
+                $this->issueHandler->addIssue($this->name, 'unfinishedCode', 
+                        $token);
+                $this->issueHandler->save();
+                
                 $found += $count;
             }
         }

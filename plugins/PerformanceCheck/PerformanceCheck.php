@@ -11,6 +11,7 @@ class PerformanceCheck implements JudgePlugin
     protected $extensionPath;
     protected $settings;
     protected $results;
+    protected $issueHandler;
 
     /**
      *
@@ -21,6 +22,7 @@ class PerformanceCheck implements JudgePlugin
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -39,6 +41,10 @@ class PerformanceCheck implements JudgePlugin
             foreach ($possiblePerformanceKillers as $possiblePerformanceKiller) {
                Logger::addComment($extensionPath, $this->name, '<comment>Found an indicator of a performance leak</comment>: ' . $possiblePerformanceKiller);
                Logger::setResultValue($extensionPath, $this->name, $possiblePerformanceKiller, count($possiblePerformanceKillers));
+               
+               $this->issueHandler->addIssue($this->name, 'performance leak', 
+                        $possiblePerformanceKiller);
+               $this->issueHandler->save();
             }
         }
         if ($this->settings->allowedPerformanceIssues < sizeof($possiblePerformanceKillers)) {

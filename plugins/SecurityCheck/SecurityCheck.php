@@ -11,6 +11,7 @@ class SecurityCheck implements JudgePlugin
     protected $extensionPath;
     protected $settings;
     protected $results;
+    protected $issueHandler;
 
     /**
      *
@@ -21,6 +22,7 @@ class SecurityCheck implements JudgePlugin
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -68,6 +70,12 @@ class SecurityCheck implements JudgePlugin
                     $requestPattern,
                     implode(';' . PHP_EOL, $filesWithThatToken)
                 ));
+                
+                $this->issueHandler->addFilesForIssue($filesWithThatToken);
+                $this->issueHandler->addIssue($this->name, 'direct request params', 
+                        $requestPattern);
+                $this->issueHandler->save();
+                
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
             Logger::setResultValue($extensionPath, $this->name, $requestPattern, count($filesWithThatToken));
@@ -94,6 +102,12 @@ class SecurityCheck implements JudgePlugin
                     $unescapedOutputPattern,
                     implode(';' . PHP_EOL, $filesWithThatToken)
                 ));
+                
+                $this->issueHandler->addFilesForIssue($filesWithThatToken);
+                $this->issueHandler->addIssue($this->name, 'escaping output', 
+                        $requestPattern);
+                $this->issueHandler->save();
+                
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
             Logger::setResultValue($extensionPath, $this->name, $unescapedOutputPattern, count($filesWithThatToken));
@@ -119,6 +133,12 @@ class SecurityCheck implements JudgePlugin
                     $sqlQueryPattern,
                     implode(';' . PHP_EOL, $filesWithThatToken)
                 ));
+                
+                $this->issueHandler->addFilesForIssue($filesWithThatToken);
+                $this->issueHandler->addIssue($this->name, 'using direct sql queries', 
+                        $requestPattern);
+                $this->issueHandler->save();
+                
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
             Logger::setResultValue($extensionPath, $this->name, $sqlQueryPattern, count($filesWithThatToken));

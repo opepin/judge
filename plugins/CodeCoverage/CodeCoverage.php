@@ -33,12 +33,14 @@ class CodeCoverage implements JudgePlugin
      * @var array
      */
     protected $moduleNames;
+    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -115,9 +117,12 @@ class CodeCoverage implements JudgePlugin
             if (array_key_exists($codeCoverageType, $codeCoverages)) {
                 Logger::addComment(
                     $extensionPath,
-                    $this->name,
-                    sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType)
+                    $this->name, sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType)
                 );
+
+                $this->issueHandler->addIssue($this->name, $codeCoverageType, $codeCoverages[$codeCoverageType]);
+                $this->issueHandler->save();
+
                 Logger::notice(sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType));
                 if ($codeCoverages[$codeCoverageType] < $codeCoverageSettings[$codeCoverageType]) {
                     $score = $this->settings->bad;

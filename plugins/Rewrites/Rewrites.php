@@ -13,11 +13,13 @@ class Rewrites implements JudgePlugin
     protected $config;
     protected $extensionPath;
     protected $rewrites=array();
+    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     public function execute($extensionPath)
@@ -51,9 +53,14 @@ class Rewrites implements JudgePlugin
                     $this->name,
                     '<comment>Critical ' . $type . ' rewrite: ' . $code . '</comment>'
                 );
+                
+                $this->issueHandler->addIssue($this->name, 'critical_' . $type . '_rewrite', $code);
+                $this->issueHandler->save();
+                
                 $score += $settings->critical->bad;
             } else {
                 Logger::addComment($this->extensionPath, $this->name, $type . ' rewrite ' . $code);
+                $this->issueHandler->addIssue($this->name, $type . '_rewrite', $code);
             }
         }
         if ($settings->bad !== $score) {

@@ -13,11 +13,13 @@ class PhpCompatibility implements JudgePlugin
     protected $config;
     protected $extensionPath;
     protected $rewrites=array();
+    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     public function execute($extensionPath)

@@ -11,7 +11,7 @@ class CheckComments implements JudgePlugin
     protected $settings;
     protected $ncloc = 0;
     protected $cloc = 0;
-
+    protected $issueHandler;
 
 
 
@@ -20,6 +20,7 @@ class CheckComments implements JudgePlugin
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
+        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -37,11 +38,21 @@ class CheckComments implements JudgePlugin
         if ($clocToNclocRatio <= $lowerBoundary || $clocToNclocRatio >= $upperBoundary) {
             $score = $this->settings->bad;
         }
+        
+        $this->issueHandler->addIssue($this->name, 'cloc_to_ncloc', 
+                $clocToNclocRatio);
+        $this->issueHandler->save();
+        
         $unfinishedCodeToNclocRatio = $this->getUnfinishedCodeToNclocRatio($extensionPath);
         Logger::addComment($extensionPath, $this->name, '<comment>calculated unfinished code to ncloc ratio</comment> ' . $unfinishedCodeToNclocRatio);
         if ($this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio) {
             $score = $this->settings->bad;
         }
+        
+        $this->issueHandler->addIssue($this->name, 'unfinished_code_to_ncloc', 
+                $unfinishedCodeToNclocRatio);
+        $this->issueHandler->save();
+        
         Logger::success('Registered good comment count in ' . $extensionPath);
         Logger::setScore($extensionPath, $this->name, $score);
         return $score;

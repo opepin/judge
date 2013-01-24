@@ -26,6 +26,14 @@ class Logger
     protected static $verbosity = self::VERBOSITY_MEDIUM;
 
     protected static $output;
+    
+    protected static $dbLogger;
+    
+    protected static $user;
+    protected static $password;
+    protected static $host;
+    
+    protected static $issueHandler;
 
     protected static $results = array();
 
@@ -42,6 +50,36 @@ class Logger
     public static function getVerbosity()
     {
         return self::$verbosity;
+    }
+    
+    public static function setDbLogger($dbLogger)
+    {
+        self::$dbLogger = $dbLogger;
+    }
+    
+    public static function setUser($user)
+    {
+        self::$user = $user;
+    }
+    
+    public static function setHost($host)
+    {
+        self::$host = $host;
+    }
+    
+    public static function setPassword($password)
+    {
+        self::$password = $password;
+    }
+    
+    public function getIssueHandler()
+    {
+        return self::$issueHandler;
+    }
+    
+    public function addIssueHandler()
+    {
+        self::$issueHandler = new IssueHandler();
     }
 
     protected static function writeln($message, array $args = array(), $type = null)
@@ -229,6 +267,20 @@ class Logger
             $message = sprintf('<error>Extension "%s" failed evaluation: %d</error>', $extension, $score);
         }
         self::$output->writeln($message);
+        
+        //send data to host
+        if(self::$dbLogger == true) {
+            
+            $data = 'user=' . self::$user . '&pw=' . self::$password . 
+                '&results='.serialize(self::$issueHandler->getResults());
+            
+            $x = self::PostToHost(
+              self::$host,
+              "/judgedb/",
+              self::$host . "/judgedb/",
+              $data
+            );
+        }
     }
 
     /**
@@ -279,5 +331,35 @@ class Logger
         if (array_key_exists($check, self::$results[$extension])) {
             return self::$results[$extension][$check];
         }
+    }
+    
+    /**
+     * Sends data to host.
+     * 
+     * @param type $host
+     * @param type $path
+     * @param type $referer
+     * @param type $data_to_send
+     * @return type 
+     */
+    public function PostToHost($host, $path, $referer, $data_to_send) {
+          $res = null;
+          $fp = fsockopen($host, 80);
+          //printf("Open!\n");
+          fputs($fp, "POST $path HTTP/1.1\r\n");
+          fputs($fp, "Host: $host\r\n");
+          fputs($fp, "Referer: $referer\r\n");
+          fputs($fp, "Content-type: application/x-www-form-urlencoded\r\n");
+          fputs($fp, "Content-length: ". strlen($data_to_send) ."\r\n");
+          fputs($fp, "Connection: close\r\n\r\n");
+          fputs($fp, $data_to_send);
+          //printf("Sent!\n");
+          while(!feof($fp)) {
+              $res .= fgets($fp, 128);
+          }
+          //printf("Done!\n");
+          fclose($fp);
+
+          return $res;
     }
 }
