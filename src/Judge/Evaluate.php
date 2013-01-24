@@ -56,6 +56,8 @@ class Evaluate extends Command
             Logger::setVerbosity(Logger::VERBOSITY_MAX);
         }
 
+        Logger::addIssueHandler();
+        
         $results = array();
 
         foreach (explode(',', $input->getArgument('extensions')) as $extensionPath) {
@@ -96,6 +98,9 @@ class Evaluate extends Command
                 Logger::addCheck($extensionPath, $name, array($plugins->$name->good, $plugins->$name->bad));
                 $plugin->execute($extensionPath);
             }
+            
+            $dbLogger = $this->config->getDbLogger();
+            Logger::setDbLogger(false);
             
             //enable dbLogger
             foreach($dbLogger as $name => $settings) {
