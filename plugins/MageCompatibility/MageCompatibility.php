@@ -3,6 +3,8 @@ namespace MageCompatibility;
 
 use Netresearch\Config;
 use Netresearch\Logger;
+use Netresearch\IssueHandler;
+use Netresearch\Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 use \dibi as dibi;

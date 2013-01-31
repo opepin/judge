@@ -2,6 +2,7 @@
 namespace Netresearch;
 
 use Symfony\Component\Console\Output\OutputInterface;
+use Netresearch\IssueHandler;
 use \Exception as Exception;
 
 /**
@@ -72,15 +73,15 @@ class Logger
         self::$password = $password;
     }
     
-    public function getIssueHandler()
-    {
-        return self::$issueHandler;
-    }
-    
-    public function addIssueHandler()
-    {
-        self::$issueHandler = new IssueHandler();
-    }
+//    public function getIssueHandler()
+//    {
+//        return self::$issueHandler;
+//    }
+//    
+//    public function addIssueHandler()
+//    {
+//        self::$issueHandler = new IssueHandler();
+//    }
 
     protected static function writeln($message, array $args = array(), $type = null)
     {
@@ -268,11 +269,14 @@ class Logger
         }
         self::$output->writeln($message);
         
+        //TODO: remove
+        self::$output->writeln(var_dump(IssueHandler::getResults()));
+        
         //send data to host
         if(self::$dbLogger == true) {
             
             $data = 'user=' . self::$user . '&pw=' . self::$password . 
-                '&results='.serialize(self::$issueHandler->getResults());
+                '&results='.serialize(IssueHandler::getResults());
             
             $x = self::PostToHost(
               self::$host,

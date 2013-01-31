@@ -3,6 +3,8 @@ namespace CheckComments;
 
 use Netresearch\Config;
 use Netresearch\Logger;
+use Netresearch\IssueHandler;
+use Netresearch\Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class CheckComments implements JudgePlugin
@@ -11,7 +13,6 @@ class CheckComments implements JudgePlugin
     protected $settings;
     protected $ncloc = 0;
     protected $cloc = 0;
-    protected $issueHandler;
 
 
 
@@ -20,7 +21,6 @@ class CheckComments implements JudgePlugin
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
-        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -39,19 +39,17 @@ class CheckComments implements JudgePlugin
             $score = $this->settings->bad;
         }
         
-        $this->issueHandler->addIssue($this->name, 'cloc_to_ncloc', 
-                $clocToNclocRatio);
-        $this->issueHandler->save();
+        $issue = new Issue();
+        IssueHandler::addIssue($issue->setCheckName($this->name)->setType('cloc_to_ncloc')->setComment($clocToNclocRatio));
+        
         
         $unfinishedCodeToNclocRatio = $this->getUnfinishedCodeToNclocRatio($extensionPath);
         Logger::addComment($extensionPath, $this->name, '<comment>calculated unfinished code to ncloc ratio</comment> ' . $unfinishedCodeToNclocRatio);
         if ($this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio) {
             $score = $this->settings->bad;
         }
+        IssueHandler::addIssue($issue->setCheckName($this->name)->setType('unfinished_code_to_ncloc')->setComment($unfinishedCodeToNclocRatio));
         
-        $this->issueHandler->addIssue($this->name, 'unfinished_code_to_ncloc', 
-                $unfinishedCodeToNclocRatio);
-        $this->issueHandler->save();
         
         Logger::success('Registered good comment count in ' . $extensionPath);
         Logger::setScore($extensionPath, $this->name, $score);

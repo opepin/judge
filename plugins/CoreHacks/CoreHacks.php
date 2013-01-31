@@ -3,6 +3,8 @@ namespace CoreHacks;
 
 use Netresearch\Config;
 use Netresearch\Logger;
+use Netresearch\IssueHandler;
+use Netresearch\Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 /**
@@ -11,12 +13,10 @@ use Netresearch\PluginInterface as JudgePlugin;
 class CoreHacks implements JudgePlugin
 {
     protected $config;
-    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->issueHandler = Logger::getIssueHandler();
     }
 
     public function execute($extensionPath)

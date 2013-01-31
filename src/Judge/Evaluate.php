@@ -56,7 +56,7 @@ class Evaluate extends Command
             Logger::setVerbosity(Logger::VERBOSITY_MAX);
         }
 
-        Logger::addIssueHandler();
+//        Logger::addIssueHandler();
         
         $results = array();
 

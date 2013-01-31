@@ -3,6 +3,8 @@ namespace CheckStyle;
 
 use Netresearch\Config;
 use Netresearch\Logger;
+use Netresearch\IssueHandler;
+use Netresearch\Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class CheckStyle implements JudgePlugin
@@ -15,14 +17,12 @@ class CheckStyle implements JudgePlugin
         'errors'    => array(),
         'warnings'  => array()
     );
-    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
-        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -134,10 +134,13 @@ class CheckStyle implements JudgePlugin
                     $this->name,
                     $comment
                 );
-                
-                $this->issueHandler->addDetail('counts', $count);
-                $this->issueHandler->addIssue($this->name, $issueType, $message);
-                $this->issueHandler->save();
+                $issue = new Issue();
+                IssueHandler::addIssue($issue->setCheckName($this->name)
+                        ->setType(strtolower($issueType))
+                        ->setComment($message));
+//                $this->issueHandler->addDetail('counts', $count);
+//                $this->issueHandler->addIssue($this->name, strtolower($issueType), $message);
+//                $this->issueHandler->save();
             }
         }
     }

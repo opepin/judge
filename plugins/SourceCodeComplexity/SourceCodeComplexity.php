@@ -3,6 +3,8 @@ namespace SourceCodeComplexity;
 
 use Netresearch\Config;
 use Netresearch\Logger;
+use Netresearch\IssueHandler;
+use Netresearch\Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class SourceCodeComplexity implements JudgePlugin
@@ -11,14 +13,12 @@ class SourceCodeComplexity implements JudgePlugin
     protected $extensionPath;
     protected $settings;
     protected $results;
-    protected $issueHandler;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->name   = current(explode('\\', __CLASS__));
         $this->settings = $this->config->plugins->{$this->name};
-        $this->issueHandler = Logger::getIssueHandler();
     }
 
     /**
@@ -62,6 +62,8 @@ class SourceCodeComplexity implements JudgePlugin
                 );
             }
             
+            $issue = new Issue();
+            
             //prepare comment for db log
             $comment = '';
             $commentParts = explode(" ", $issue, 2);
@@ -73,12 +75,10 @@ class SourceCodeComplexity implements JudgePlugin
                 $fileName = $fileParts[0];
                 $lineNumber = $fileParts[1];
 
-                $this->issueHandler->addDetail('lineNumber', $lineNumber);
-                $this->issueHandler->addFilesForIssue(array($fileName));
+                $issue->setLinenumber($linenumber)->setFilename($filename);
             }
 
-            $this->issueHandler->addIssue($this->name, 'mess_detector', $commentParts[0]);
-            $this->issueHandler->save();
+            IssueHandler::addIssue($issue->setCheckName($this->name)->setType('mess_detector')->setComment($commentParts[0]));
             
         } else {
             Logger::addComment(
@@ -112,8 +112,11 @@ class SourceCodeComplexity implements JudgePlugin
                     $this->name,
                     '<comment>Critical metric ' . $metricName . ' value: ' . $metricValue . '</comment>'
                 );
-                $this->issueHandler->addIssue($this->name, $metricName, $metricValue);
-                $this->issueHandler->save();
+                
+                $issue = new Issue();
+                IssueHandler::addIssue($issue->setCheckName($this->name)
+                        ->setType($metricName)
+                        ->setComment($metricValue));
                 ++ $metricViolations;
             }
         }
@@ -162,8 +165,10 @@ class SourceCodeComplexity implements JudgePlugin
                 sprintf('<comment>Extension contains %s%% of duplicated code.</comment>', $cpdPercentage)
             );
             
-            $this->issueHandler->addIssue($this->name, 'duplicated_code', $cpdPercentage);
-            $this->issueHandler->save();
+            $issue = new Issue();
+            IssueHandler::addIssue($issue->setCheckName($this->name)
+                        ->setType('duplicated_code')
+                        ->setComment($cpdPercentage));
             
             return $this->settings->phpcpd->bad;
         }
