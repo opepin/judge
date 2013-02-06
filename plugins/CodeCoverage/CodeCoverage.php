@@ -4,7 +4,7 @@ namespace CodeCoverage;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
+use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 use \Zend_Exception as Exception;
 
@@ -120,10 +120,9 @@ class CodeCoverage implements JudgePlugin
                     $this->name, sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType)
                 );
                 
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType($codeCoverageType)
-                        ->setComment($codeCoverages[$codeCoverageType]));
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => $codeCoverageType,
+                            "comment" => $codeCoverages[$codeCoverageType])));
 
 
                 Logger::notice(sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType));

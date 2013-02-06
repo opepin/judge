@@ -4,7 +4,7 @@ namespace SourceCodeComplexity;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
+use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class SourceCodeComplexity implements JudgePlugin
@@ -60,26 +60,32 @@ class SourceCodeComplexity implements JudgePlugin
                 Logger::addComment(
                         $extensionPath, $this->name, '<comment>Mess detector found an issue:</comment>' . $issue
                 );
+                
+                //prepare comment for db log
+                $comment = null;
+                $linenumber = null;
+                $filename = null;
+                $commentParts = explode(":", $issue, 2);
+                if (count($commentParts) > 1) {
+                    $filename = $commentParts[0];
+                    $comment = $commentParts[1];
+                }
+
+                $commentParts = explode("\t", $comment, 2);
+                if (count($commentParts) > 1)
+                {
+                    $linenumber = $commentParts[0];
+                    $comment = $commentParts[1];
+                }
+
+
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => 'mess_detector',
+                            "comment" => $comment,
+                            "linenumber" => $linenumber,
+                            "files" => array($filename))));
+                
             }
-            
-            $issue = new Issue();
-            
-            //prepare comment for db log
-            $comment = '';
-            $commentParts = explode(" ", $issue, 2);
-            if (count($commentParts) > 1)
-                $comment = $commentParts[1];
-
-            $fileParts = explode(":", $commentParts[0]);
-            if (count($fileParts) > 1) {
-                $fileName = $fileParts[0];
-                $lineNumber = $fileParts[1];
-
-                $issue->setLinenumber($linenumber)->setFilename($filename);
-            }
-
-            IssueHandler::addIssue($issue->setCheckName($this->name)->setType('mess_detector')->setComment($commentParts[0]));
-            
         } else {
             Logger::addComment(
                     $extensionPath, $this->name, '<info>Mess detector found ' . count($mdResults) . ' results only</info>'
@@ -165,10 +171,9 @@ class SourceCodeComplexity implements JudgePlugin
                 sprintf('<comment>Extension contains %s%% of duplicated code.</comment>', $cpdPercentage)
             );
             
-            $issue = new Issue();
-            IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType('duplicated_code')
-                        ->setComment($cpdPercentage));
+            IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                        "type" => 'duplicated_code',
+                        "comment" => $cpdPercentage)));
             
             return $this->settings->phpcpd->bad;
         }

@@ -4,7 +4,7 @@ namespace Rewrites;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
+use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 /**
@@ -55,18 +55,16 @@ class Rewrites implements JudgePlugin
                 );
                 
                 
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType('critical_' . $type . '_rewrite')
-                        ->setComment($code));
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => 'critical_' . $type . '_rewrite',
+                            "comment" => $code)));
                 
                 $score += $settings->critical->bad;
             } else {
                 Logger::addComment($this->extensionPath, $this->name, $type . ' rewrite ' . $code);
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType($type . '_rewrite')
-                        ->setComment($code));
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => $type . '_rewrite',
+                            "comment" => $code)));
             }
         }
         if ($settings->bad !== $score) {

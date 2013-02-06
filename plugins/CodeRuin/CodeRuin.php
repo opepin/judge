@@ -4,7 +4,7 @@ namespace CodeRuin;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
+use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class CodeRuin implements JudgePlugin
@@ -64,15 +64,10 @@ class CodeRuin implements JudgePlugin
                     implode(', ', $filesWithThatToken)
                 ));
                 
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType('unfinishedCode')
-                        ->setComment($token));
-                
-//                $this->issueHandler->addFilesForIssue($filesWithThatToken);
-//                $this->issueHandler->addIssue($this->name, 'unfinishedCode', 
-//                        $token);
-//                $this->issueHandler->save();
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => 'unfinishedCode',
+                            "comment" => $token,
+                            "files" => $filesWithThatToken)));
                 
                 $found += $count;
             }

@@ -4,7 +4,7 @@ namespace PerformanceCheck;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
+use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class PerformanceCheck implements JudgePlugin
@@ -42,11 +42,9 @@ class PerformanceCheck implements JudgePlugin
                Logger::addComment($extensionPath, $this->name, '<comment>Found an indicator of a performance leak</comment>: ' . $possiblePerformanceKiller);
                Logger::setResultValue($extensionPath, $this->name, $possiblePerformanceKiller, count($possiblePerformanceKillers));
                
-               
-               $issue = new Issue();
-               IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType('performance_leak')
-                        ->setComment($possiblePerformanceKiller));
+               IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => 'performance_leak',
+                            "comment" => $possiblePerformanceKiller . ' (' . count($possiblePerformanceKillers) . 'times)')));
             }
         }
         if ($this->settings->allowedPerformanceIssues < sizeof($possiblePerformanceKillers)) {

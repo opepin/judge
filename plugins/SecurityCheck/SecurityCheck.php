@@ -4,7 +4,7 @@ namespace SecurityCheck;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
+use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class SecurityCheck implements JudgePlugin
@@ -71,15 +71,10 @@ class SecurityCheck implements JudgePlugin
                     implode(';' . PHP_EOL, $filesWithThatToken)
                 ));
                 
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType('params')
-                        ->setComment($requestPattern));
-                
-//                $this->issueHandler->addFilesForIssue($filesWithThatToken);
-//                $this->issueHandler->addIssue($this->name, 'params', 
-//                        $requestPattern);
-//                $this->issueHandler->save();
+               IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => 'params',
+                            "comment" => $requestPattern,
+                            "files" => $filesWithThatToken)));
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
@@ -108,15 +103,10 @@ class SecurityCheck implements JudgePlugin
                     implode(';' . PHP_EOL, $filesWithThatToken)
                 ));
                 
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType('escape')
-                        ->setComment($unescapedOutputPattern));
-                
-//                $this->issueHandler->addFilesForIssue($filesWithThatToken);
-//                $this->issueHandler->addIssue($this->name, 'escape', 
-//                        $unescapedOutputPattern);
-//                $this->issueHandler->save();
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => 'escape',
+                            "comment" => $unescapedOutputPattern,
+                            "files" => $filesWithThatToken)));
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
@@ -144,15 +134,10 @@ class SecurityCheck implements JudgePlugin
                     implode(';' . PHP_EOL, $filesWithThatToken)
                 ));
                 
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType('sql')
-                        ->setComment($sqlQueryPattern));
-                
-//                $this->issueHandler->addFilesForIssue($filesWithThatToken);
-//                $this->issueHandler->addIssue($this->name, 'sql', 
-//                        $sqlQueryPattern);
-//                $this->issueHandler->save();
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => 'sql',
+                            "comment" => $sqlQueryPattern,
+                            "files" => $filesWithThatToken)));
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }

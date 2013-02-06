@@ -4,7 +4,7 @@ namespace CheckStyle;
 use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
+use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 
 class CheckStyle implements JudgePlugin
@@ -134,13 +134,9 @@ class CheckStyle implements JudgePlugin
                     $this->name,
                     $comment
                 );
-                $issue = new Issue();
-                IssueHandler::addIssue($issue->setCheckName($this->name)
-                        ->setType(strtolower($issueType))
-                        ->setComment($message));
-//                $this->issueHandler->addDetail('counts', $count);
-//                $this->issueHandler->addIssue($this->name, strtolower($issueType), $message);
-//                $this->issueHandler->save();
+                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                            "type" => strtolower($issueType),
+                            "comment" => $message . ' (' . $count . ' times).')));
             }
         }
     }
