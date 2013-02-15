@@ -40,9 +40,9 @@ class CodeRuin implements JudgePlugin
             : $this->settings->warning->good;
 
         if ($this->settings->good <= $score) {
-            Logger::success('No unfinished code found at ' . $extensionPath);
+//            Logger::success('No unfinished code found at ' . $extensionPath);
         } else {
-            Logger::warning('Unfinished code found at ' . $extensionPath);
+//            Logger::warning('Unfinished code found at ' . $extensionPath);
         }
 
         Logger::setScore($extensionPath, $this->name, $score);
@@ -58,13 +58,14 @@ class CodeRuin implements JudgePlugin
             exec($command, $filesWithThatToken, $return);
             $count = count($filesWithThatToken);
             if (0 < $count) {
-                Logger::addComment($extensionPath, $this->name, sprintf(
-                    'Found an indicator of unfinished code: "%s" at %s',
-                    $token,
-                    implode(', ', $filesWithThatToken)
-                ));
+//                Logger::addComment($extensionPath, $this->name, sprintf(
+//                    'Found an indicator of unfinished code: "%s" at %s',
+//                    $token,
+//                    implode(', ', $filesWithThatToken)
+//                ));
                 
-                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                    "checkname" => $this->name,
                             "type" => 'unfinishedCode',
                             "comment" => $token,
                             "files" => $filesWithThatToken)));

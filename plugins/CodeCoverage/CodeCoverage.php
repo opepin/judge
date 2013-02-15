@@ -61,7 +61,7 @@ class CodeCoverage implements JudgePlugin
         $this->moduleNames = XmlReader::getModuleNames($extensionPath);
         if (empty($this->moduleNames)) {
             $score = $this->settings->bad;
-            Logger::addComment($extensionPath, $this->name, 'No tests found for extension');
+//            Logger::addComment($extensionPath, $this->name, 'No tests found for extension');
             return $score;
         }
 
@@ -115,17 +115,18 @@ class CodeCoverage implements JudgePlugin
         $codeCoverageSettings = $this->settings->phpUnitCodeCoverages->toArray();
         foreach (array_keys($codeCoverageSettings) as $codeCoverageType) {
             if (array_key_exists($codeCoverageType, $codeCoverages)) {
-                Logger::addComment(
-                    $extensionPath,
-                    $this->name, sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType)
-                );
+//                Logger::addComment(
+//                    $extensionPath,
+//                    $this->name, sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType)
+//                );
                 
-                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                    "checkname" => $this->name,
                             "type" => $codeCoverageType,
                             "comment" => $codeCoverages[$codeCoverageType])));
 
 
-                Logger::notice(sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType));
+//                Logger::notice(sprintf('<comment>Extension has a code coverage of "%f" for type "%s"</comment>', $codeCoverages[$codeCoverageType], $codeCoverageType));
                 if ($codeCoverages[$codeCoverageType] < $codeCoverageSettings[$codeCoverageType]) {
                     $score = $this->settings->bad;
                 }
@@ -148,9 +149,14 @@ class CodeCoverage implements JudgePlugin
                 $score = $this->settings->bad;
             }
             foreach ($notCoveredClasses as $notCoveredClass) {
-                Logger::notice(
-                    '<comment>Following class is not covered by any test: ' . $notCoveredClass . ' </comment>'
-                );
+//                Logger::notice(
+//                    '<comment>Following class is not covered by any test: ' . $notCoveredClass . ' </comment>'
+//                );
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                    "checkname" => $this->name,
+                            "type" => 'none',
+                            "comment" => '<comment>Following class is not covered by any test: ' . $notCoveredClass . ' </comment>',
+                    "failed"    =>  false)));
             }
         }
         unlink($pdependSummaryFile);
@@ -340,7 +346,7 @@ class CodeCoverage implements JudgePlugin
                     Logger::log(implode(PHP_EOL, $output));
                     Logger::setVerbosity($origVerbosity);
                 }
-                Logger::addComment($extensionPath, $this->name, implode(PHP_EOL, $output));
+//                Logger::addComment($extensionPath, $this->name, implode(PHP_EOL, $output));
             }
             if ($error) {
                 Logger::error('Magento installation failed');
@@ -348,11 +354,11 @@ class CodeCoverage implements JudgePlugin
             unlink($iniFile);
         }
 
-        if (!is_file($this->magentoTarget . '/UnitTests.php')) {
-            throw new Exception(sprintf(
-                "No UnitTests.php found in Magento root directory (%s)",
-                $this->magentoTarget
-            ));
-        }
+//        if (!is_file($this->magentoTarget . '/UnitTests.php')) {
+//            throw new Exception(sprintf(
+//                "No UnitTests.php found in Magento root directory (%s)",
+//                $this->magentoTarget
+//            ));
+//        }
     }
 }

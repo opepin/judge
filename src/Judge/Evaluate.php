@@ -55,8 +55,6 @@ class Evaluate extends Command
         if ($input->getOption('verbose')) {
             Logger::setVerbosity(Logger::VERBOSITY_MAX);
         }
-
-//        Logger::addIssueHandler();
         
         $results = array();
 
@@ -99,21 +97,30 @@ class Evaluate extends Command
                 $plugin->execute($extensionPath);
             }
             
-            $dbLogger = $this->config->getDbLogger();
-            Logger::setDbLogger(false);
-            
             //enable dbLogger
-            foreach($dbLogger as $name => $settings) {
-                if($name == 'db_log' && $settings == '1')
+            $dbLogger = $this->config->getDbLogger();
+            
+            foreach ($dbLogger as $name => $settings) {
+                if( $name == 'db_log' && $settings === '1')
+                {
                     Logger::setDbLogger(true);
-                
-                if($name == 'user') Logger::setUser($settings);
-                if($name == 'password') Logger::setPassword($settings);
-                if($name == 'host') Logger::setHost($settings);
+                }
+                if( $name == 'user')
+                {
+                    Logger::setUser($settings);
+                }
+                if( $name == 'password')
+                {
+                    Logger::setPassword($settings);
+                }
+                if( $name == 'host')
+                {
+                    Logger::setHost($settings);
+                }
             }
             
             Logger::printResults($extensionPath);
-            $this->generateResultHtml($extensionPath);
+//            $this->generateResultHtml($extensionPath);
         }
     }
 

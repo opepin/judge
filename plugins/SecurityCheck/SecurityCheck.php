@@ -45,7 +45,7 @@ class SecurityCheck implements JudgePlugin
             $score = $settings->bad;
         }
         if ($score == $settings->good) {
-            Logger::success('No direct usage of request params, sql queries or unescaped output ' . $extensionPath);
+//            Logger::success('No direct usage of request params, sql queries or unescaped output ' . $extensionPath);
         }
         Logger::setScore($extensionPath, $this->name, $score);
         return $score;
@@ -65,13 +65,14 @@ class SecurityCheck implements JudgePlugin
             $command = 'grep -riEl "' . $requestPattern . '" ' . $extensionPath . '/app';
             exec($command, $filesWithThatToken, $return);
             if (0 < count($filesWithThatToken)) {
-                Logger::addComment($extensionPath, $this->name, sprintf(
-                    '<comment>Found an indicator of using direct request params:</comment>"%s" at %s',
-                    $requestPattern,
-                    implode(';' . PHP_EOL, $filesWithThatToken)
-                ));
+//                Logger::addComment($extensionPath, $this->name, sprintf(
+//                    '<comment>Found an indicator of using direct request params:</comment>"%s" at %s',
+//                    $requestPattern,
+//                    implode(';' . PHP_EOL, $filesWithThatToken)
+//                ));
                 
-               IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                   "checkname" => $this->name,
                             "type" => 'params',
                             "comment" => $requestPattern,
                             "files" => $filesWithThatToken)));
@@ -97,13 +98,14 @@ class SecurityCheck implements JudgePlugin
             $command = 'grep -riEl "' . $unescapedOutputPattern . '" ' . $extensionPath . '/app';
             exec($command, $filesWithThatToken, $return);
             if (0 < count($filesWithThatToken)) {
-                Logger::addComment($extensionPath, $this->name, sprintf(
-                    '<comment>Found an indicator of not escaping output:</comment>"%s" at %s',
-                    $unescapedOutputPattern,
-                    implode(';' . PHP_EOL, $filesWithThatToken)
-                ));
+//                Logger::addComment($extensionPath, $this->name, sprintf(
+//                    '<comment>Found an indicator of not escaping output:</comment>"%s" at %s',
+//                    $unescapedOutputPattern,
+//                    implode(';' . PHP_EOL, $filesWithThatToken)
+//                ));
                 
-                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                    "checkname" => $this->name,
                             "type" => 'escape',
                             "comment" => $unescapedOutputPattern,
                             "files" => $filesWithThatToken)));
@@ -128,13 +130,14 @@ class SecurityCheck implements JudgePlugin
             $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $extensionPath . '/app';
             exec($command, $filesWithThatToken, $return);
             if (0 < count($filesWithThatToken)) {
-                Logger::addComment($extensionPath, $this->name, sprintf(
-                    '<comment>Found an indicator of using direct sql queries:</comment>"%s" at %s',
-                    $sqlQueryPattern,
-                    implode(';' . PHP_EOL, $filesWithThatToken)
-                ));
+//                Logger::addComment($extensionPath, $this->name, sprintf(
+//                    '<comment>Found an indicator of using direct sql queries:</comment>"%s" at %s',
+//                    $sqlQueryPattern,
+//                    implode(';' . PHP_EOL, $filesWithThatToken)
+//                ));
                 
-                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                    "checkname" => $this->name,
                             "type" => 'sql',
                             "comment" => $sqlQueryPattern,
                             "files" => $filesWithThatToken)));

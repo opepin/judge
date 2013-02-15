@@ -42,17 +42,21 @@ class PhpCompatibility implements JudgePlugin
             $phpci->parse($extensionPath);
 
             $allResultsAtOnce = $phpci->toArray();
-            foreach ($phpci->toArray() as $file=>$result) {
-                $currentMin = $this->getVersionInt($result['versions'][0]);
-                $currentMax = $this->getVersionInt($result['versions'][1]);
+            foreach ($phpci->toArray() as $file => $result) {
+                if ($file == 'versions') {
+                    $currentMin = $this->getVersionInt($result[0]);
+                    $currentMax = $this->getVersionInt($result[1]);
 
-                if (false == is_null($currentMin) && $min < $currentMin) {
-                    $min = $currentMin;
-                    $minReadable = $result['versions'][0];
-                }
-                if (false == is_null($currentMax) && $currentMax < $max) {
-                    $max = $currentMax;
-                    $maxReadable = $result['versions'][1];
+                    if (false == is_null($currentMin) && $min < $currentMin)
+                    {
+                        $min = $currentMin;
+                        $minReadable = $result[0];
+                    }
+                    if (false == is_null($currentMax) && $currentMax < $max)
+                    {
+                        $max = $currentMax;
+                        $maxReadable = $result[1];
+                    }
                 }
             }
 
@@ -61,17 +65,29 @@ class PhpCompatibility implements JudgePlugin
         }
 
         if ($min <= $this->getVersionInt($settings->min) && $maxReadable=='latest') {
-            Logger::success(vsprintf(
-                'Extension is compatible to PHP from version %s up to latest versions',
-                array($minReadable)
-            ));
+//            Logger::success(vsprintf(
+//                'Extension is compatible to PHP from version %s up to latest versions',
+//                array($minReadable)
+//            ));
+           IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+               "checkname" => $this->name,
+                            "type" => 'php_compatibility',
+                            "comment" => vsprintf('Extension is compatible to PHP from version %s up to latest versions',
+                array($minReadable)) )));
+           
             Logger::setScore($extensionPath, $this->name, $settings->good);
             return $settings->good;
         }
-        Logger::warning(vsprintf(
+        IssueHandler::addIssue(new Issue(array("extension" => $extensionPath ,"checkname" => $this->name,
+                            "type" => 'php_compatibility',
+                            "comment" => vsprintf(
             'Extension is compatible to PHP from version %s (instead of required %s) up to %s',
-            array($minReadable, $settings->min, $maxReadable)
-        ));
+            array($minReadable, $settings->min, $maxReadable) ))));
+        
+//        Logger::warning(vsprintf(
+//            'Extension is compatible to PHP from version %s (instead of required %s) up to %s',
+//            array($minReadable, $settings->min, $maxReadable)
+//        ));
         Logger::setScore($extensionPath, $this->name, $settings->bad);
         return $settings->bad;
     }

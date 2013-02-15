@@ -48,27 +48,29 @@ class Rewrites implements JudgePlugin
         foreach ($this->rewrites as $rewrite) {
             list($type, $code) = explode('s:', $rewrite);
             if ($this->isCritical($rewrite)) {
-                Logger::addComment(
-                    $this->extensionPath,
-                    $this->name,
-                    '<comment>Critical ' . $type . ' rewrite: ' . $code . '</comment>'
-                );
+//                Logger::addComment(
+//                    $this->extensionPath,
+//                    $this->name,
+//                    '<comment>Critical ' . $type . ' rewrite: ' . $code . '</comment>'
+//                );
                 
                 
-                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                    "checkname" => $this->name,
                             "type" => 'critical_' . $type . '_rewrite',
                             "comment" => $code)));
                 
                 $score += $settings->critical->bad;
             } else {
-                Logger::addComment($this->extensionPath, $this->name, $type . ' rewrite ' . $code);
-                IssueHandler::addIssue(new Issue(array("checkname" => $this->name,
+//                Logger::addComment($this->extensionPath, $this->name, $type . ' rewrite ' . $code);
+                IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+                    "checkname" => $this->name,
                             "type" => $type . '_rewrite',
                             "comment" => $code)));
             }
         }
         if ($settings->bad !== $score) {
-            Logger::success('%d rewrites found in %s', array(count($this->rewrites), $extensionPath));
+//            Logger::success('%d rewrites found in %s', array(count($this->rewrites), $extensionPath));
         }
 
         Logger::setScore($extensionPath, $this->name, $score);

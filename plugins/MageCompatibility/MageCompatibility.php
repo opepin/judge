@@ -34,15 +34,24 @@ class MageCompatibility implements JudgePlugin
         $methods = $extension->getUsedMagentoMethods();
         $classes = $extension->getUsedMagentoClasses();
 
-        Logger::addComment(
-            $extensionPath,
-            $this->name,
-            sprintf(
+//        Logger::addComment(
+//            $extensionPath,
+//            $this->name,
+//            sprintf(
+//                'Extension uses %d classes and %d methods of Magento core',
+//                $classes->count(),
+//                $methods->count()
+//            )
+//        );
+        
+        IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
+            "checkname" => $this->name,
+                            "type" => 'mage_compatibility',
+                            "comment" => sprintf(
                 'Extension uses %d classes and %d methods of Magento core',
                 $classes->count(),
                 $methods->count()
-            )
-        );
+            ))));
 
         $incompatibleVersions = array();
         foreach ($availableVersions as $version) {
@@ -113,22 +122,33 @@ class MageCompatibility implements JudgePlugin
                 );
             }
             if (0 < strlen($message)) {
-                Logger::addComment(
-                    $extensionPath,
-                    $this->name,
-                    sprintf("<error>Extension is not compatible to Magento %s</error>\n%s", $version, $message)
-                );
+//                Logger::addComment(
+//                    $extensionPath,
+//                    $this->name,
+//                    sprintf("<error>Extension is not compatible to Magento %s</error>\n%s", $version, $message)
+//                );
+                
+                IssueHandler::addIssue(new Issue(array("extension" => $extensionPath ,"checkname" => $this->name,
+                            "type" => 'mage_compatibility',
+                            "comment" => 
+                    sprintf("<error>Extension is not compatible to Magento %s</error>\n%s", $version, $message))));
             } else {
                 $compatibleVersions[] = $version;
             }
         }
 
-        Logger::addComment(
-            $extensionPath,
-            $this->name,
-            'Checked Magento versions: ' . implode(', ', $availableVersions) . "\n"
-            . '* Extension seems to support following Magento versions: ' . implode(', ', $compatibleVersions)
-        );
+//        Logger::addComment(
+//            $extensionPath,
+//            $this->name,
+//            'Checked Magento versions: ' . implode(', ', $availableVersions) . "\n"
+//            . '* Extension seems to support following Magento versions: ' . implode(', ', $compatibleVersions)
+//        );
+        IssueHandler::addIssue(new Issue(array("extension" => $extensionPath ,"checkname" => $this->name,
+                            "type" => 'mage_compatibility',
+                            "comment" => 
+                    'Checked Magento versions: ' . implode(', ', $availableVersions) . "\n"
+            . '* Extension seems to support following Magento versions: ' . implode(', ', $compatibleVersions))));
+        
         foreach (array_keys($incompatibleVersions) as $key) {
             if (0 == count($incompatibleVersions[$key]['classes']) &&
                 0 == count($incompatibleVersions[$key]['methods']) &&
@@ -138,7 +158,15 @@ class MageCompatibility implements JudgePlugin
             }
         }
         if ($this->containsNoLatestVersion(array_keys($incompatibleVersions), 'CE')) {
-            Logger::success(sprintf('Extension supports Magento at least from CE version %s and EE version %s', $this->settings->min->ce, $this->settings->min->ee));
+//            Logger::success(sprintf('Extension supports Magento at least from CE version %s and EE version %s', $this->settings->min->ce, $this->settings->min->ee));
+            
+            IssueHandler::addIssue(new Issue(array("extension" => $extensionPath ,"checkname" => $this->name,
+                            "type" => 'mage_compatibility',
+                            "comment" => 
+                    sprintf('Extension supports Magento at least from CE version %s and EE version %s', 
+                            $this->settings->min->ce, $this->settings->min->ee))));
+        
+            
             Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $this->settings->good);
             return $this->settings->good;
         }
