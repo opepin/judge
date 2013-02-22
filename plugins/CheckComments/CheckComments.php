@@ -34,29 +34,29 @@ class CheckComments implements JudgePlugin
         $lowerBoundary = $this->settings->lowerBoundary;
         $upperBoundary = $this->settings->upperBoundary;
         $clocToNclocRatio = $this->getClocToNclocRatio($extensionPath);
-//        Logger::addComment($extensionPath, $this->name, '<comment>calculated cloc to ncloc ratio of</comment> ' . $clocToNclocRatio);
         
         if ($clocToNclocRatio <= $lowerBoundary || $clocToNclocRatio >= $upperBoundary) {
             $score = $this->settings->bad;
         }
         
-        IssueHandler::addIssue(new Issue(array("extension" => $extensionPath , "checkname" => $this->name,
-            "type"      =>   'cloc_to_ncloc',
-            "comment"   =>  $clocToNclocRatio,
-            "failed"    =>  false)));
+        IssueHandler::addIssue(new Issue(
+                array(  "extension" => $extensionPath , "checkname" => $this->name,
+                        "type"      => 'cloc_to_ncloc',
+                        "comment"   => $clocToNclocRatio,
+                        "failed"    => false)));
         
         $unfinishedCodeToNclocRatio = $this->getUnfinishedCodeToNclocRatio($extensionPath);
-//        Logger::addComment($extensionPath, $this->name, '<comment>calculated unfinished code to ncloc ratio</comment> ' . $unfinishedCodeToNclocRatio);
         
         if ($this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio) {
             $score = $this->settings->bad;
         }
-        IssueHandler::addIssue(new Issue(array("extension" => $extensionPath , "checkname" => $this->name,
-            "type"      =>   'unfinished_code_to_ncloc',
-            "comment"   =>  $unfinishedCodeToNclocRatio,
-            "failed"    =>  false)));
+        IssueHandler::addIssue(new Issue(
+                array(  "extension" => $extensionPath, 
+                        "checkname" => $this->name,
+                        "type"      => 'unfinished_code_to_ncloc',
+                        "comment"   => $unfinishedCodeToNclocRatio,
+                        "failed"    => false)));
         
-//        Logger::success('Registered good comment count in ' . $extensionPath);
         Logger::setScore($extensionPath, $this->name, $score);
         return $score;
     }

@@ -49,20 +49,9 @@ class CheckStyle implements JudgePlugin
         if ($this->settings->allowedIssues < sizeof($csResults)) {
             $score = $this->settings->bad;
             foreach ($csResults as $issue) {
-//                Logger::addComment(
-//                    $extensionPath,
-//                    $this->name,
-//                    '<comment>PHPCS found issue:</comment>' . $issue
-//                );
                 $this->addToUniqueIssues($issue);
             }
             $this->logUniqueIssues();
-        } else {
-//            Logger::addComment(
-//                $extensionPath,
-//                $this->name,
-//                '<info>PHPCS found ' . count($csResults) . 'only</info>'
-//            );
         }
         Logger::setScore($extensionPath, $this->name, $score);
         return $score;
@@ -126,19 +115,12 @@ class CheckStyle implements JudgePlugin
     {
         foreach ($this->uniqueIssues as $issueType => $uniqueIssues) {
             foreach ($uniqueIssues as $message => $count) {
-//                $comment = '<comment>PHPCS found a violation of type ' .
-//                    $issueType . ' with message:</comment> ' . $message .
-//                    ' (' . $count . ' times).';
-//                Logger::addComment(
-//                    $this->extensionPath,
-//                    $this->name,
-//                    $comment
-//                );
-                IssueHandler::addIssue(new Issue(array("extension"  =>  $this->extensionPath,
-                    "checkname" => $this->name,
-                            "type" => strtolower($issueType),
-                            "comment" => $message . ' (' . $count . ' times).',
-                    "failed"    => true)));
+                IssueHandler::addIssue(new Issue(
+                        array(  "extension" =>  $this->extensionPath,
+                                "checkname" =>  $this->name,
+                                "type"      =>  strtolower($issueType),
+                                "comment"   =>  $message . ' (' . $count . ' times).',
+                                "failed"    =>  true)));
             }
         }
     }

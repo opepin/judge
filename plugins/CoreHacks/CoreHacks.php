@@ -27,11 +27,9 @@ class CoreHacks implements JudgePlugin
         foreach (array('Mage_', 'Enterprise_') as $corePrefix) {
             $command = 'grep -rEh "class ' . $corePrefix . '.* extends" ' . $extensionPath;
             exec($command, $output, $return);
-//            Logger::setComments($extensionPath, current(explode('\\', __CLASS__)), $output);
             $coreHackCount += count($output);
         }
         if (0 == $coreHackCount) {
-//            Logger::success('No core hacks found in ' . $extensionPath);
             Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $settings->good);
             return $settings->good;
         }

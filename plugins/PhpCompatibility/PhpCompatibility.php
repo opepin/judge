@@ -65,29 +65,22 @@ class PhpCompatibility implements JudgePlugin
         }
 
         if ($min <= $this->getVersionInt($settings->min) && $maxReadable=='latest') {
-//            Logger::success(vsprintf(
-//                'Extension is compatible to PHP from version %s up to latest versions',
-//                array($minReadable)
-//            ));
-           IssueHandler::addIssue(new Issue(array("extension"  =>  $extensionPath,
-               "checkname" => $this->name,
-                            "type" => 'php_compatibility',
-                            "comment" => vsprintf('Extension is compatible to PHP from version %s up to latest versions',
-                array($minReadable)) )));
+           IssueHandler::addIssue(new Issue(
+                   array(   "extension"  =>  $extensionPath,
+                           "checkname"  => $this->name,
+                           "type"       => 'php_compatibility',
+                           "comment"    => vsprintf('Extension is compatible to PHP from version %s up to latest versions',
+                            array($minReadable)) )));
            
             Logger::setScore($extensionPath, $this->name, $settings->good);
             return $settings->good;
         }
-        IssueHandler::addIssue(new Issue(array("extension" => $extensionPath ,"checkname" => $this->name,
-                            "type" => 'php_compatibility',
-                            "comment" => vsprintf(
-            'Extension is compatible to PHP from version %s (instead of required %s) up to %s',
-            array($minReadable, $settings->min, $maxReadable) ))));
+        IssueHandler::addIssue(new Issue(
+                array(  "extension" => $extensionPath ,"checkname" => $this->name,
+                        "type"      => 'php_compatibility',
+                        "comment"   => vsprintf('Extension is compatible to PHP from version %s (instead of required %s) up to %s',
+                        array($minReadable, $settings->min, $maxReadable) ))));
         
-//        Logger::warning(vsprintf(
-//            'Extension is compatible to PHP from version %s (instead of required %s) up to %s',
-//            array($minReadable, $settings->min, $maxReadable)
-//        ));
         Logger::setScore($extensionPath, $this->name, $settings->bad);
         return $settings->bad;
     }
