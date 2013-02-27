@@ -12,7 +12,7 @@ use \Exception as Exception;
  *
  * @author Stefanie Drost<stefanie.drost@netresearch.de>
  */
-class Logger extends AbstractLogger
+class Logger extends BaseLogger
 {
     protected static $loggerOutput = 'console';
     

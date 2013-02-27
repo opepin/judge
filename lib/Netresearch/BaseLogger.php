@@ -9,7 +9,7 @@ use \Exception as Exception;
  *
  * @author Stefanie Drost<stefanie.drost@netresearch.de>
  */
-abstract class AbstractLogger
+class BaseLogger
 {
     const TYPE_COMMENT = 'comment';
 
