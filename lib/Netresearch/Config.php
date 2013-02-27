@@ -243,8 +243,8 @@ class Config extends \Zend_Config_Ini
         return $this->plugins;
     }
     
-    public function getDbLogger()
+    public function getLogger()
     {
-        return $this->dblogger;
+        return $this->logger;
     }
 }

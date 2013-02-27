@@ -14,7 +14,7 @@ use \Exception as Exception;
  */
 class Logger extends AbstractLogger
 {
-    protected static $dbLogger = false;
+    protected static $loggerOutput = 'console';
     
     protected static $user;
     protected static $password;
@@ -22,9 +22,9 @@ class Logger extends AbstractLogger
     
     protected static $issueHandler;
     
-    public static function setDbLogger($dbLogger)
+    public static function setLoggerOutput($loggerOutput)
     {
-        self::$dbLogger = $dbLogger;
+        self::$loggerOutput = $loggerOutput;
     }
     
     public static function setUser($user)
@@ -51,9 +51,9 @@ class Logger extends AbstractLogger
     public static function printResults($extension)
     {
         //switch between db and simple logger
-        if (self::$dbLogger == true) {
-            self::sendToDb();
-        } else {
+        if (self::$loggerOutput === 'webservice') {
+            self::sendToWebservice();
+        } else if(self::$loggerOutput === 'console') {
             self::printOnOutput($extension);
         }
     }
@@ -68,12 +68,6 @@ class Logger extends AbstractLogger
                     self::$output->writeln('* ' . $issue->getType() . ': ' . $issue->getComment());
                 }
             }
-            
-//            if (array_key_exists('comments', self::$results[$extension][$failedCheck])) {
-//                foreach (self::$results[$extension][$failedCheck]['comments'] as $comment) {
-//                    self::$output->writeln('* ' . $comment);
-//                }
-//            }
         }
         foreach (self::getPassedChecks($extension) as $passedCheck) {
             self::log('"%s" passed check "%s"', array($extension, $passedCheck));
@@ -84,12 +78,6 @@ class Logger extends AbstractLogger
                     self::$output->writeln('* ' . $issue->getType() . ': ' . $issue->getComment());
                 }
             }
-            
-//            if (array_key_exists('comments', self::$results[$extension][$passedCheck])) {
-//                foreach (self::$results[$extension][$passedCheck]['comments'] as $comment) {
-//                    self::log('* ' . $comment);
-//                }
-//            }
         }
         $score = self::getScore($extension);
         if (0 < $score) {
@@ -103,12 +91,12 @@ class Logger extends AbstractLogger
         
     }
     
-    private static function sendToDb()
+    private static function sendToWebservice()
     {
         $data = 'user=' . self::$user . '&pw=' . self::$password .
                 '&results=' . json_encode(IssueHandler::getPreparedResults());
 
-        $x = self::PostToHost(self::$host, "/judgedb/", self::$host . "/judgedb/", $data);
+        $x = self::postToHost(self::$host, "/judgedb/", self::$host . "/judgedb/", $data);
     }
     
     /**
@@ -120,7 +108,7 @@ class Logger extends AbstractLogger
      * @param String $data_to_send
      * @return type 
      */
-    public function PostToHost($host, $path, $referer, $data_to_send) {
+    public function postToHost($host, $path, $referer, $data_to_send) {
           $res = null;
           $fp = fsockopen($host, 80);
           //printf("Open!\n");

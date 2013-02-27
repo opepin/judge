@@ -97,13 +97,13 @@ class Evaluate extends Command
                 $plugin->execute($extensionPath);
             }
             
-            //enable dbLogger
-            $dbLogger = $this->config->getDbLogger();
+            //swap logger output
+            $logger = $this->config->getLogger();
             
-            foreach ($dbLogger as $name => $settings) {
-                if( $name == 'db_log' && $settings === '1')
+            foreach ($logger as $name => $settings) {
+                if( $name == 'output' && ( $settings === 'webservice' | $settings === 'console') )
                 {
-                    Logger::setDbLogger(true);
+                    Logger::setLoggerOutput($settings);
                 }
                 if( $name == 'user')
                 {
