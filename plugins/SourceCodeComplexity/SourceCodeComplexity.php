@@ -118,7 +118,6 @@ class SourceCodeComplexity implements JudgePlugin
         if ($this->settings->phpDepend->metricViolations->allowedMetricViolations < $metricViolations) {
             $score = $score + $this->settings->phpDepend->metricViolations->bad;
         }
-//        Logger::success('%d metric violations found in %s', array($metricViolations, $extensionPath));
         unlink($tempXml);
         return $score;
     }
