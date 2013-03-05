@@ -3,3 +3,6 @@ vendor
 plugins/MageCompatibility/var/tmp.jumpstorm.ini
 /tmp
 /composer.lock
+.idea
+composer.lock
+nbproject
