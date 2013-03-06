@@ -35,6 +35,7 @@ class Evaluate extends Command
         $this->setDescription('Detect Core Hacks');
         $this->addArgument('extensions', InputArgument::REQUIRED, 'path to the extensions to judge (separate by ",")');
         $this->addOption('config',  'c', InputOption::VALUE_OPTIONAL, 'provide a configuration file', 'ini/sample.judge.ini');
+        $this->addOption('user-token',  't', InputOption::VALUE_OPTIONAL, 'unique token for user session definition');
     }
 
     /**
@@ -54,6 +55,10 @@ class Evaluate extends Command
         }
         if ($input->getOption('verbose')) {
             Logger::setVerbosity(Logger::VERBOSITY_MAX);
+        }
+
+        if ($input->getOption('user-token')) {
+            Logger::setToken($input->getOption('user-token'));
         }
         
         $results = array();

@@ -19,6 +19,7 @@ class Logger extends BaseLogger
     protected static $user;
     protected static $password;
     protected static $host;
+    protected static $token;
     
     protected static $issueHandler;
     
@@ -40,6 +41,11 @@ class Logger extends BaseLogger
     public static function setPassword($password)
     {
         self::$password = $password;
+    }
+
+    public static function setToken($token)
+    {
+        self::$token = $token;
     }
     
     
@@ -95,6 +101,9 @@ class Logger extends BaseLogger
     {
         $data = 'user=' . self::$user . '&pw=' . self::$password .
                 '&results=' . json_encode(IssueHandler::getPreparedResults());
+        if (self::$token) {
+            $data .= '&token=' . self::$token;
+        }
 
         $x = self::postToHost(self::$host, "/judgedb/", self::$host . "/judgedb/", $data);
     }
