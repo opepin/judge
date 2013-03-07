@@ -35,7 +35,7 @@ class XMLReader
         // search config.xml file
         $files = self::searchConfig($extensionPath);
         
-        if( count($files) == 1) {
+        if( count($files) > 0) {
             $xml = simplexml_load_file($files[0]); 
         }
         
