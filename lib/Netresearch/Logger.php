@@ -49,7 +49,7 @@ class Logger extends BaseLogger
      * @param String $extension path to extension
      */
     public static function printResults($extension)
-    {
+    {        
         //switch between db and simple logger
         if (self::$loggerOutput === 'webservice') {
             self::sendToWebservice();
@@ -87,13 +87,19 @@ class Logger extends BaseLogger
         } else {
             $message = sprintf('<error>Extension "%s" failed evaluation: %d</error>', $extension, $score);
         }
+//        self::$output->writeln(var_dump(self::$extVendor));
+//        self::$output->writeln(var_dump(self::$extVersion));
+//        self::$output->writeln(var_dump(self::$extName));
+//        self::$output->writeln(var_dump(self::$files));
         self::$output->writeln($message);
         
     }
     
     private static function sendToWebservice()
-    {
+    {             
         $data = 'user=' . self::$user . '&pw=' . self::$password .
+                '&version=' . self::$extVersion . '&name=' . self::$extName .
+                '&vendor=' . self::$extVendor . 
                 '&results=' . json_encode(IssueHandler::getPreparedResults());
 
         $x = self::postToHost(self::$host, "/judgedb/", self::$host . "/judgedb/", $data);

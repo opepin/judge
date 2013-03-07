@@ -29,6 +29,9 @@ class BaseLogger
 
     protected static $output;
     
+    protected static $extVendor;
+    protected static $extVersion;
+    protected static $extName;
 
     protected static $results = array();
 
@@ -46,6 +49,26 @@ class BaseLogger
     {
         return self::$verbosity;
     }
+    
+    public static function setExtVendor($extVendor)
+    {
+        self::$extVendor = $extVendor;
+    }
+    
+    public static function setExtVersion($extVersion)
+    {
+        self::$extVersion = $extVersion;
+    }
+    
+    public static function setExtName($extName)
+    {
+        self::$extName = $extName;
+    }
+//    
+//    public static function setFiles($files)
+//    {
+//        self::$files = $files;
+//    }
     
     protected static function writeln($message, array $args = array(), $type = null)
     {

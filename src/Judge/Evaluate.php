@@ -35,6 +35,9 @@ class Evaluate extends Command
         $this->setDescription('Detect Core Hacks');
         $this->addArgument('extensions', InputArgument::REQUIRED, 'path to the extensions to judge (separate by ",")');
         $this->addOption('config',  'c', InputOption::VALUE_OPTIONAL, 'provide a configuration file', 'ini/sample.judge.ini');
+        $this->addOption('vendor',  'd', InputOption::VALUE_OPTIONAL, 'provide the vendor of the extension');
+        $this->addOption('extension',  'e', InputOption::VALUE_OPTIONAL, 'provide the name of the extension');
+        $this->addOption('ext_version',  's', InputOption::VALUE_OPTIONAL, 'provide the extension version');
     }
 
     /**
@@ -56,10 +59,15 @@ class Evaluate extends Command
             Logger::setVerbosity(Logger::VERBOSITY_MAX);
         }
         
+        
         $results = array();
 
         foreach (explode(',', $input->getArgument('extensions')) as $extensionPath) {
             $extensionPath = realpath($extensionPath);
+            
+            //get vendor, name and version of extension
+            $this->getExtensionAttributes($input, $extensionPath);
+        
             $plugins = $this->config->getPlugins();
             foreach ($plugins as $name => $settings) {
                 $results[$extensionPath] = 0;
@@ -124,6 +132,79 @@ class Evaluate extends Command
         }
     }
 
+    
+    protected function getExtensionAttributes($input, $extensionPath)
+    {
+        
+//        $files = $this->searchConfig($extensionPath);
+//        
+//        if( count($files) == 1) {
+//            $xml = simplexml_load_file($files[0]); 
+//        }
+//        Logger::setFiles($xml->modules);
+        
+        if ($input->getOption('vendor')) {
+            Logger::setExtVendor($input->getOption('vendor'));
+        } else {
+            Logger::setExtVendor('no value');
+            //read vendor from config
+        }
+        if ($input->getOption('extension')) {
+            Logger::setExtName($input->getOption('extension'));
+        } else {
+            Logger::setExtName('no value');
+            //read extension name from config
+        }
+        if ($input->getOption('ext_version')) {
+            Logger::setExtVersion($input->getOption('ext_version'));
+        } else {
+            Logger::setExtVersion('no value');
+            //read extension version from config
+        }
+    }
+    
+    protected function searchConfig($extensionPath)
+    {
+        $searchedFile = 'config.xml';
+        $filelist = array();
+        $dir = dir($extensionPath);
+
+        while (false !== ($file = $dir->read())) {
+
+            if (('.' == $file) or ('..' == $file) or !is_readable($this->includeTrailingPathDelimiter($extensionPath) . $file))
+                continue;
+
+            if (is_dir($this->includeTrailingPathDelimiter($extensionPath) . $file)) {
+                $filelist = array_merge($filelist, $this->searchConfig($this->includeTrailingPathDelimiter($extensionPath) . $file, $searchedFile));
+            } else {
+                if (preg_match("/$searchedFile/", $file)) {
+                    array_push($filelist, $this->includeTrailingPathDelimiter($extensionPath) . $file);
+                }
+            }
+        }
+
+        $dir->close();
+
+        return $filelist;
+    }
+
+    protected function includeTrailingPathDelimiter($path, $backslash = false)
+    {
+        if (!$this->hasTrailingPathDelimiter($path)) {
+            if ($backslash) {
+                return $path . '\\';
+            } else {
+                return $path . '/';
+            }
+        } else {
+            return $path;
+        }
+    }
+
+    function hasTrailingPathDelimiter($path)
+    {
+        return ($path[strlen($path) - 1] == '/') or ($path[strlen($path) - 1] == '\\');
+    }
 
     protected function getBasePath()
     {
