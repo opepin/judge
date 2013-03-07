@@ -2,7 +2,7 @@
 namespace Judge;
 
 use Netresearch\Logger;
-
+use Netresearch\XMLReader;
 use Netresearch\Config;
 
 use Symfony\Component\Console\Command\Command;
@@ -135,75 +135,31 @@ class Evaluate extends Command
     
     protected function getExtensionAttributes($input, $extensionPath)
     {
-        
-//        $files = $this->searchConfig($extensionPath);
-//        
-//        if( count($files) == 1) {
-//            $xml = simplexml_load_file($files[0]); 
-//        }
-//        Logger::setFiles($xml->modules);
+        //read from config if all values are empty
+        if( is_null($input->getOption('vendor')) || 
+                is_null($input->getOption('extension')) || 
+                        is_null($input->getOption('ext_version'))) {
+            XMLReader::readConfig($extensionPath);
+        }
         
         if ($input->getOption('vendor')) {
             Logger::setExtVendor($input->getOption('vendor'));
         } else {
-            Logger::setExtVendor('no value');
             //read vendor from config
+            Logger::setExtVendor(XMLReader::getVendor());
         }
         if ($input->getOption('extension')) {
             Logger::setExtName($input->getOption('extension'));
         } else {
-            Logger::setExtName('no value');
             //read extension name from config
+            Logger::setExtName(XMLReader::getExtensionName());
         }
         if ($input->getOption('ext_version')) {
             Logger::setExtVersion($input->getOption('ext_version'));
         } else {
-            Logger::setExtVersion('no value');
             //read extension version from config
+            Logger::setExtVersion(XMLReader::getVersion());
         }
-    }
-    
-    protected function searchConfig($extensionPath)
-    {
-        $searchedFile = 'config.xml';
-        $filelist = array();
-        $dir = dir($extensionPath);
-
-        while (false !== ($file = $dir->read())) {
-
-            if (('.' == $file) or ('..' == $file) or !is_readable($this->includeTrailingPathDelimiter($extensionPath) . $file))
-                continue;
-
-            if (is_dir($this->includeTrailingPathDelimiter($extensionPath) . $file)) {
-                $filelist = array_merge($filelist, $this->searchConfig($this->includeTrailingPathDelimiter($extensionPath) . $file, $searchedFile));
-            } else {
-                if (preg_match("/$searchedFile/", $file)) {
-                    array_push($filelist, $this->includeTrailingPathDelimiter($extensionPath) . $file);
-                }
-            }
-        }
-
-        $dir->close();
-
-        return $filelist;
-    }
-
-    protected function includeTrailingPathDelimiter($path, $backslash = false)
-    {
-        if (!$this->hasTrailingPathDelimiter($path)) {
-            if ($backslash) {
-                return $path . '\\';
-            } else {
-                return $path . '/';
-            }
-        } else {
-            return $path;
-        }
-    }
-
-    function hasTrailingPathDelimiter($path)
-    {
-        return ($path[strlen($path) - 1] == '/') or ($path[strlen($path) - 1] == '\\');
     }
 
     protected function getBasePath()
