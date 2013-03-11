@@ -83,7 +83,7 @@ class CodeCoverage implements JudgePlugin
     {
         $score = $this->settings->good;
         $executable = 'vendor/bin/phpunit';
-        $phpUnitCoverageFile = 'codecoverage.xml';
+        $phpUnitCoverageFile = 'tmp/codecoverage.xml';
 
         $phpUnitSwitches = array(
             sprintf("--coverage-clover %s", $phpUnitCoverageFile),
@@ -295,6 +295,12 @@ class CodeCoverage implements JudgePlugin
         if (!$jumpstormConfig->common) {
             throw new Exception("Required information missing in jumpstorm ini file: [common]");
         }
+
+        if ($this->config->token) {
+            $jumpstormConfig->common->magento->target = $jumpstormConfig->common->magento->target . '_' . $this->config->token;
+            $jumpstormConfig->common->db->name = $jumpstormConfig->common->db->name . '_' . $this->config->token;
+        }
+
         $this->magentoTarget = rtrim($jumpstormConfig->common->magento->target, DIRECTORY_SEPARATOR);
 
         // import test environment configuration from console: [extensions] section

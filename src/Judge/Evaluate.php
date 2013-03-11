@@ -59,6 +59,7 @@ class Evaluate extends Command
 
         if ($input->getOption('user-token')) {
             Logger::setToken($input->getOption('user-token'));
+            $this->config->token = $input->getOption('user-token');
         }
         
         $results = array();
