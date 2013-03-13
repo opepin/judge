@@ -42,6 +42,10 @@ class Logger extends BaseLogger
         self::$password = $password;
     }
     
+    public static function registerCheck($extension, $checkName)
+    {
+        IssueHandler::registerCheck($extension, $checkName);
+    }
     
     /**
      * Prints results or sending them to database (based on config file).
@@ -87,18 +91,15 @@ class Logger extends BaseLogger
         } else {
             $message = sprintf('<error>Extension "%s" failed evaluation: %d</error>', $extension, $score);
         }
-//        self::$output->writeln(var_dump(self::$extVendor));
-//        self::$output->writeln(var_dump(self::$extVersion));
-//        self::$output->writeln(var_dump(self::$extName));
-//        self::$output->writeln(var_dump(self::$files));
         self::$output->writeln($message);
         
     }
     
     private static function sendToWebservice()
-    {             
+    {    
         $data = 'user=' . self::$user . '&pw=' . self::$password .
-                '&version=' . self::$extVersion . '&name=' . self::$extName .
+                '&version=' . self::$extVersion . 
+                '&name=' . self::$extName .
                 '&vendor=' . self::$extVendor . 
                 '&results=' . json_encode(IssueHandler::getPreparedResults());
 

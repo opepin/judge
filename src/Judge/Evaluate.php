@@ -76,7 +76,7 @@ class Evaluate extends Command
                     Logger::log('Skipping plugin "%s"', array($name));
                     continue;
                 }
-
+                
                 // set path to plugin by convention
                 $path = $this->getBasePath() . 'plugins' . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR;
 
@@ -102,6 +102,7 @@ class Evaluate extends Command
                 $class = "$name\\$name";
                 $plugin = new $class($pluginConfig);
                 Logger::addCheck($extensionPath, $name, array($plugins->$name->good, $plugins->$name->bad));
+                Logger::registerCheck($extensionPath, $name);
                 $plugin->execute($extensionPath);
             }
             
