@@ -46,7 +46,7 @@ There are some command line options available:
    * - --extension (-e)
      - provide the extension name
 
-   * - --version (-s)
+   * - --ext_version (-s)
      - provide the extension version
 
    * - --verbose (-v)
