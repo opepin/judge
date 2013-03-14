@@ -118,7 +118,8 @@ class CodeCoverage implements JudgePlugin
                         array(  "extension" =>  $extensionPath,
                                 "checkname" => $this->name,
                                 "type"      => $codeCoverageType,
-                                "comment"   => $codeCoverages[$codeCoverageType])));
+                                "comment"   => $codeCoverages[$codeCoverageType],
+                                "failed"    =>  true)));
             if ($codeCoverages[$codeCoverageType] < $codeCoverageSettings[$codeCoverageType]) {
                     $score = $this->settings->bad;
                 }

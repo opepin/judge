@@ -80,7 +80,8 @@ class SourceCodeComplexity implements JudgePlugin
                                 "type"          =>  'mess_detector',
                                 "comment"       =>  $comment,
                                 "linenumber"    =>  $linenumber,
-                                "files"         =>  array($filename))));
+                                "files"         =>  array($filename),
+                                "failed"        =>  true)));
             }
         }
         return $score;
@@ -109,7 +110,8 @@ class SourceCodeComplexity implements JudgePlugin
                         array(  "extension" =>  $extensionPath,
                                 "checkname" => $this->name,
                                 "type"      => $metricName,
-                                "comment"   => $metricValue)));  
+                                "comment"   => $metricValue,
+                                "failed"        =>  true)));  
                 
                 ++ $metricViolations;
             }
@@ -158,7 +160,8 @@ class SourceCodeComplexity implements JudgePlugin
                     array(  "extension" =>  $extensionPath,
                             "checkname" => $this->name,
                             "type"      => 'duplicated_code',
-                            "comment"   => $cpdPercentage)));
+                            "comment"   => $cpdPercentage,
+                            "failed"        =>  true)));
             
             return $this->settings->phpcpd->bad;
         }
