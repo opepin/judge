@@ -34,6 +34,12 @@ class CoreHacks implements JudgePlugin
             return $settings->good;
         }
         Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $settings->bad);
+        IssueHandler::addIssue(new Issue(
+                array(  "extension" =>  $this->extensionPath,
+                        "checkname" =>  current(explode('\\', __CLASS__)),
+                        "type"      =>  "corehack",
+                        "comment"   =>  "corehack found",
+                        "failed"    =>  true)));
         return $settings->bad;
     }
 }

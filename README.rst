@@ -40,6 +40,15 @@ There are some command line options available:
    * - --config (-c)
      - provide a configuration file (default: 'ini/sample.judge.ini')
 
+   * - --vendor (-d)
+     - provide the name of the extension vendor
+
+   * - --extension (-e)
+     - provide the extension name
+
+   * - --ext_version (-s)
+     - provide the extension version
+
    * - --verbose (-v)
      - Increase output verbosity
 

@@ -29,6 +29,9 @@ class BaseLogger
 
     protected static $output;
     
+    protected static $extVendor;
+    protected static $extVersion;
+    protected static $extName;
 
     protected static $results = array();
 
@@ -45,6 +48,36 @@ class BaseLogger
     public static function getVerbosity()
     {
         return self::$verbosity;
+    }
+    
+    public static function setExtVendor($extVendor)
+    {
+        self::$extVendor = $extVendor;
+    }
+    
+    public static function setExtVersion($extVersion)
+    {
+        self::$extVersion = $extVersion;
+    }
+    
+    public static function setExtName($extName)
+    {
+        self::$extName = $extName;
+    }
+    
+    public static function getExtVendor()
+    {
+        return self::$extVendor;
+    }
+    
+    public static function getExtVersion()
+    {
+        return self::$extVersion;
+    }
+    
+    public static function getExtName()
+    {
+        return self::$extName;
     }
     
     protected static function writeln($message, array $args = array(), $type = null)

@@ -67,7 +67,8 @@ class SecurityCheck implements JudgePlugin
                                 "checkname" => $this->name,
                                 "type"      => 'params',
                                 "comment"   => $requestPattern,
-                                "files"     => $filesWithThatToken)));
+                                "files"     => $filesWithThatToken,
+                                "failed"    =>  true)));
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
@@ -95,7 +96,8 @@ class SecurityCheck implements JudgePlugin
                                 "checkname" => $this->name,
                                 "type"      => 'escape',
                                 "comment"   => $unescapedOutputPattern,
-                                "files"     => $filesWithThatToken)));
+                                "files"     => $filesWithThatToken,
+                                "failed"    =>  true)));
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
@@ -122,7 +124,8 @@ class SecurityCheck implements JudgePlugin
                                 "checkname" => $this->name,
                                 "type"      => 'sql',
                                 "comment"   => $sqlQueryPattern,
-                                "files"     => $filesWithThatToken)));
+                                "files"     => $filesWithThatToken,
+                                "failed"    =>  true)));
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
