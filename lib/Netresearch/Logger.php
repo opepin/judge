@@ -42,6 +42,10 @@ class Logger extends BaseLogger
         self::$password = $password;
     }
     
+    public static function registerCheck($extension, $checkName)
+    {
+        IssueHandler::registerCheck($extension, $checkName);
+    }
     
     /**
      * Prints results or sending them to database (based on config file).
@@ -49,7 +53,7 @@ class Logger extends BaseLogger
      * @param String $extension path to extension
      */
     public static function printResults($extension)
-    {
+    {        
         //switch between db and simple logger
         if (self::$loggerOutput === 'webservice') {
             self::sendToWebservice();
@@ -60,6 +64,10 @@ class Logger extends BaseLogger
     
     private function printOnOutput($extension)
     {
+        self::$output->writeln("Vendor: " . self::getExtVendor());
+        self::$output->writeln("Extension: " . self::getExtName());
+        self::$output->writeln("Version: " . self::getExtVersion());
+        
         foreach (self::getFailedChecks($extension) as $failedCheck) {
             self::error('<comment>"%s" failed check "%s"</comment>', array($extension, $failedCheck), false);
 
@@ -92,8 +100,11 @@ class Logger extends BaseLogger
     }
     
     private static function sendToWebservice()
-    {
+    {    
         $data = 'user=' . self::$user . '&pw=' . self::$password .
+                '&version=' . self::$extVersion . 
+                '&name=' . self::$extName .
+                '&vendor=' . self::$extVendor . 
                 '&results=' . json_encode(IssueHandler::getPreparedResults());
 
         $x = self::postToHost(self::$host, "/judgedb/", self::$host . "/judgedb/", $data);

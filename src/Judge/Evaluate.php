@@ -2,7 +2,7 @@
 namespace Judge;
 
 use Netresearch\Logger;
-
+use Netresearch\XMLReader;
 use Netresearch\Config;
 
 use Symfony\Component\Console\Command\Command;
@@ -35,6 +35,9 @@ class Evaluate extends Command
         $this->setDescription('Detect Core Hacks');
         $this->addArgument('extensions', InputArgument::REQUIRED, 'path to the extensions to judge (separate by ",")');
         $this->addOption('config',  'c', InputOption::VALUE_OPTIONAL, 'provide a configuration file', 'ini/sample.judge.ini');
+        $this->addOption('vendor',  'd', InputOption::VALUE_OPTIONAL, 'provide the vendor of the extension');
+        $this->addOption('extension',  'e', InputOption::VALUE_OPTIONAL, 'provide the name of the extension');
+        $this->addOption('ext_version',  's', InputOption::VALUE_OPTIONAL, 'provide the extension version');
     }
 
     /**
@@ -56,10 +59,15 @@ class Evaluate extends Command
             Logger::setVerbosity(Logger::VERBOSITY_MAX);
         }
         
+        
         $results = array();
 
         foreach (explode(',', $input->getArgument('extensions')) as $extensionPath) {
             $extensionPath = realpath($extensionPath);
+            
+            //get vendor, name and version of extension
+            $this->getExtensionAttributes($input, $extensionPath);
+        
             $plugins = $this->config->getPlugins();
             foreach ($plugins as $name => $settings) {
                 $results[$extensionPath] = 0;
@@ -68,7 +76,7 @@ class Evaluate extends Command
                     Logger::log('Skipping plugin "%s"', array($name));
                     continue;
                 }
-
+                
                 // set path to plugin by convention
                 $path = $this->getBasePath() . 'plugins' . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR;
 
@@ -94,6 +102,7 @@ class Evaluate extends Command
                 $class = "$name\\$name";
                 $plugin = new $class($pluginConfig);
                 Logger::addCheck($extensionPath, $name, array($plugins->$name->good, $plugins->$name->bad));
+                Logger::registerCheck($extensionPath, $name);
                 $plugin->execute($extensionPath);
             }
             
@@ -124,6 +133,38 @@ class Evaluate extends Command
         }
     }
 
+    
+    protected function getExtensionAttributes($input, $extensionPath)
+    {
+        //read from config if all values are empty
+        if( is_null($input->getOption('vendor')) || 
+                is_null($input->getOption('extension')) || 
+                        is_null($input->getOption('ext_version'))) {
+            XMLReader::readConfig($extensionPath);
+        }
+        
+        if ($input->getOption('vendor')) {
+            Logger::setExtVendor($input->getOption('vendor'));
+        } else {
+            //read vendor from config
+            $vendor = XMLReader::getVendor();
+            Logger::setExtVendor($vendor);
+        }
+        if ($input->getOption('extension')) {
+            Logger::setExtName($input->getOption('extension'));
+        } else {
+            //read extension name from config
+            $extension = XMLReader::getExtensionName();
+            Logger::setExtName($extension);
+        }
+        if ($input->getOption('ext_version')) {
+            Logger::setExtVersion($input->getOption('ext_version'));
+        } else {
+            //read extension version from config
+            $version = XMLReader::getVersion();
+            Logger::setExtVersion($version);
+        }
+    }
 
     protected function getBasePath()
     {

@@ -66,11 +66,12 @@ class PhpCompatibility implements JudgePlugin
 
         if ($min <= $this->getVersionInt($settings->min) && $maxReadable=='latest') {
            IssueHandler::addIssue(new Issue(
-                   array(   "extension"  =>  $extensionPath,
+                   array(  "extension"  =>  $extensionPath,
                            "checkname"  => $this->name,
                            "type"       => 'php_compatibility',
                            "comment"    => vsprintf('Extension is compatible to PHP from version %s up to latest versions',
-                            array($minReadable)) )));
+                            array($minReadable)),
+                            "failed"    => false)));
            
             Logger::setScore($extensionPath, $this->name, $settings->good);
             return $settings->good;
@@ -79,7 +80,8 @@ class PhpCompatibility implements JudgePlugin
                 array(  "extension" => $extensionPath ,"checkname" => $this->name,
                         "type"      => 'php_compatibility',
                         "comment"   => vsprintf('Extension is compatible to PHP from version %s (instead of required %s) up to %s',
-                        array($minReadable, $settings->min, $maxReadable) ))));
+                        array($minReadable, $settings->min, $maxReadable)),
+                        "failed"    => true)));
         
         Logger::setScore($extensionPath, $this->name, $settings->bad);
         return $settings->bad;

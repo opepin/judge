@@ -11,6 +11,11 @@ class IssueHandler
         return self::$results;
     }
     
+    public static function registerCheck($extension, $checkName)
+    {
+        self::$results[$extension][$checkName]['issues'] = array();
+    }
+    
     public static function getPreparedResults()
     {
         $dbResults = array();
