@@ -52,7 +52,8 @@ class Rewrites implements JudgePlugin
                         array(  "extension" =>  $extensionPath,
                                 "checkname" => $this->name,
                                 "type"      => 'critical_' . $type . '_rewrite',
-                                "comment"   => $code)));
+                                "comment"   => $code,
+                                "failed"    =>  true)));
                 
                 $score += $settings->critical->bad;
             } else {
@@ -60,7 +61,8 @@ class Rewrites implements JudgePlugin
                         array(  "extension" =>  $extensionPath,
                                 "checkname" => $this->name,
                                 "type"      => $type . '_rewrite',
-                                "comment"   => $code)));
+                                "comment"   => $code,
+                                "failed"    =>  true)));
             }
         }
 

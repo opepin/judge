@@ -31,11 +31,11 @@ class CodeRuin implements JudgePlugin
         $this->extensionPath = $extensionPath;
         $score = 0;
 
-        $score += ($this->extensionContainsTokens($extensionPath, $this->settings->criticals))
+        $score += ($this->extensionContainsTokens($extensionPath, $this->settings->criticals, 'critical'))
             ? $this->settings->critical->bad
             : $this->settings->critical->good;
 
-        $score += ($this->extensionContainsTokens($extensionPath, $this->settings->warnings))
+        $score += ($this->extensionContainsTokens($extensionPath, $this->settings->warnings, 'warning'))
             ? (int) $this->settings->warning->bad
             : $this->settings->warning->good;
 
@@ -43,7 +43,7 @@ class CodeRuin implements JudgePlugin
         return $score;
     }
 
-    protected function extensionContainsTokens($extensionPath, $tokens)
+    protected function extensionContainsTokens($extensionPath, $tokens, $type)
     {
         $found = 0;
         foreach ($tokens as $token) {
@@ -52,12 +52,24 @@ class CodeRuin implements JudgePlugin
             exec($command, $filesWithThatToken, $return);
             $count = count($filesWithThatToken);
             if (0 < $count) {
-                IssueHandler::addIssue(new Issue(
+                if(strcmp($type, 'critical') == 0) {
+                    IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
                                 "checkname" => $this->name,
-                                "type"      => 'unfinishedCode',
+                                "type"      => 'critical',
                                 "comment"   => $token,
-                                "files"     => $filesWithThatToken)));
+                                "files"     => $filesWithThatToken,
+                                "failed"    =>  true)));
+                } else if(strcmp($type, 'warning') == 0) {
+                    IssueHandler::addIssue(new Issue(
+                        array(  "extension" =>  $extensionPath,
+                                "checkname" => $this->name,
+                                "type"      => 'warning',
+                                "comment"   => $token,
+                                "files"     => $filesWithThatToken,
+                                "failed"    =>  true)));
+                }
+                
                 
                 $found += $count;
             }

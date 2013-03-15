@@ -44,7 +44,9 @@ class PerformanceCheck implements JudgePlugin
                IssueHandler::addIssue(new Issue(
                        array(   "extension"  => $extensionPath ,"checkname" => $this->name,
                                 "type"       => 'performance_leak',
-                                "comment"    => $possiblePerformanceKiller . ' (' . count($possiblePerformanceKillers) . 'times)')));
+                                "comment"    => $possiblePerformanceKiller . ' (' . 
+                           count($possiblePerformanceKillers) . 'times)',
+                                "failed"    =>  true)));
             }
         }
         if ($this->settings->allowedPerformanceIssues < sizeof($possiblePerformanceKillers)) {

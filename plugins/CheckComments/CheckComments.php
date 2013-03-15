@@ -37,8 +37,12 @@ class CheckComments implements JudgePlugin
         
         if ($clocToNclocRatio <= $lowerBoundary || $clocToNclocRatio >= $upperBoundary) {
             $score = $this->settings->bad;
+            IssueHandler::addIssue(new Issue(
+                array(  "extension" => $extensionPath , "checkname" => $this->name,
+                        "type"      => 'cloc_to_ncloc',
+                        "comment"   => $clocToNclocRatio,
+                        "failed"    => true)));
         }
-        
         IssueHandler::addIssue(new Issue(
                 array(  "extension" => $extensionPath , "checkname" => $this->name,
                         "type"      => 'cloc_to_ncloc',
@@ -49,6 +53,12 @@ class CheckComments implements JudgePlugin
         
         if ($this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio) {
             $score = $this->settings->bad;
+            IssueHandler::addIssue(new Issue(
+                array(  "extension" => $extensionPath, 
+                        "checkname" => $this->name,
+                        "type"      => 'unfinished_code_to_ncloc',
+                        "comment"   => $unfinishedCodeToNclocRatio,
+                        "failed"    => true)));
         }
         IssueHandler::addIssue(new Issue(
                 array(  "extension" => $extensionPath, 
@@ -56,7 +66,6 @@ class CheckComments implements JudgePlugin
                         "type"      => 'unfinished_code_to_ncloc',
                         "comment"   => $unfinishedCodeToNclocRatio,
                         "failed"    => false)));
-        
         Logger::setScore($extensionPath, $this->name, $score);
         return $score;
     }
