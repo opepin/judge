@@ -64,11 +64,21 @@ class BaseLogger
     {
         self::$extName = $extName;
     }
-//    
-//    public static function setFiles($files)
-//    {
-//        self::$files = $files;
-//    }
+    
+    public static function getExtVendor()
+    {
+        return self::$extVendor;
+    }
+    
+    public static function getExtVersion()
+    {
+        return self::$extVersion;
+    }
+    
+    public static function getExtName()
+    {
+        return self::$extName;
+    }
     
     protected static function writeln($message, array $args = array(), $type = null)
     {

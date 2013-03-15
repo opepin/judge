@@ -64,6 +64,10 @@ class Logger extends BaseLogger
     
     private function printOnOutput($extension)
     {
+        self::$output->writeln("Vendor: " . self::getExtVendor());
+        self::$output->writeln("Extension: " . self::getExtName());
+        self::$output->writeln("Version: " . self::getExtVersion());
+        
         foreach (self::getFailedChecks($extension) as $failedCheck) {
             self::error('<comment>"%s" failed check "%s"</comment>', array($extension, $failedCheck), false);
 

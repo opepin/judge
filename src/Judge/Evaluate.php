@@ -145,30 +145,24 @@ class Evaluate extends Command
         
         if ($input->getOption('vendor')) {
             Logger::setExtVendor($input->getOption('vendor'));
-            Logger::log('Vendor: "%s"', array($input->getOption('vendor')));
         } else {
             //read vendor from config
             $vendor = XMLReader::getVendor();
             Logger::setExtVendor($vendor);
-            Logger::log('Vendor: "%s"', array($vendor));
         }
         if ($input->getOption('extension')) {
             Logger::setExtName($input->getOption('extension'));
-            Logger::log('Extension: "%s"', array($input->getOption('extension')));
         } else {
             //read extension name from config
             $extension = XMLReader::getExtensionName();
             Logger::setExtName($extension);
-            Logger::log('Extension: "%s"', array($extension));
         }
         if ($input->getOption('ext_version')) {
             Logger::setExtVersion($input->getOption('ext_version'));
-            Logger::log('Extension Version: "%s"', array($input->getOption('ext_version')));
         } else {
             //read extension version from config
             $version = XMLReader::getVersion();
             Logger::setExtVersion($version);
-            Logger::log('Extension Version: "%s"', array($version));
         }
     }
 
