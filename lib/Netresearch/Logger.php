@@ -139,4 +139,33 @@ class Logger extends BaseLogger
 
           return $res;
     }
+    
+    public static function getPassedChecksOfIssueHandler($extension)
+    {
+        $passedChecks = array();
+        $results = IssueHandler::getResults($extension);
+        foreach($results as $check => $entries) {
+            if(count($entries['issues']) == 0) {
+                $passedChecks[$check] = $entries;
+            }
+        }
+        return $passedChecks;
+    }
+    
+    public static function getFailedChecksOfIssueHandler($extension)
+    {
+        $failedChecks = array();
+        $results = IssueHandler::getResults($extension);
+        foreach($results as $check => $entries) {
+            if(count($entries['issues']) > 0) {
+                foreach($entries['issues'] as $issue) {
+                    $tmp = array();
+                    $tmp['type'] = $issue->getType();
+                    $tmp['comment'] = $issue->getComment();
+                    $failedChecks[$check]['comment'][] = $tmp;
+                }
+            }
+        }
+        return $failedChecks;
+    }
 }
