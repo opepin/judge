@@ -83,7 +83,7 @@ class CodeCoverage implements JudgePlugin
     {
         $score = $this->settings->good;
         $executable = 'vendor/bin/phpunit';
-        $phpUnitCoverageFile = 'tmp/codecoverage.xml';
+        $phpUnitCoverageFile = 'tmp/codecoverage' . (string) $this->config->token . '.xml';
 
         $phpUnitSwitches = array(
             sprintf("--coverage-clover %s", $phpUnitCoverageFile),
@@ -103,7 +103,7 @@ class CodeCoverage implements JudgePlugin
 
 
 
-        $pdependSummaryFile = 'summary.xml';
+        $pdependSummaryFile = 'summary' . (string) $this->config->token . '.xml';
         $execString = sprintf('vendor/pdepend/pdepend/src/bin/pdepend --summary-xml="%s" "%s"', $pdependSummaryFile, $extensionPath);
         exec($execString);
         $phpUnitXpaths = array();
@@ -152,6 +152,8 @@ class CodeCoverage implements JudgePlugin
         }
         unlink($pdependSummaryFile);
         unlink($phpUnitCoverageFile);
+        // remove test source dir
+        exec(sprintf('rm -rf %s', $this->magentoTarget));
 
         return $score;
     }
@@ -318,7 +320,7 @@ class CodeCoverage implements JudgePlugin
                 }
             }
 
-            $iniFile = 'tmp/jumpstorm.ini';
+            $iniFile = 'tmp/jumpstorm' . (string) $this->config->token . '.ini';
             $writer = new \Zend_Config_Writer_Ini();
             $writer->write($iniFile, $jumpstormConfig);
 
