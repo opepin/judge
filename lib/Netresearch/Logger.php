@@ -119,7 +119,7 @@ class Logger extends BaseLogger
      * @param String $data_to_send
      * @return type 
      */
-    public function postToHost($host, $path, $referer, $data_to_send) {
+    public static function postToHost($host, $path, $referer, $data_to_send) {
           $res = null;
           $fp = fsockopen($host, 80);
           //printf("Open!\n");
