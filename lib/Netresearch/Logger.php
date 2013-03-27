@@ -119,7 +119,7 @@ class Logger extends BaseLogger
      * @param String $data_to_send
      * @return type 
      */
-    public function postToHost($host, $path, $referer, $data_to_send) {
+    public static function postToHost($host, $path, $referer, $data_to_send) {
           $res = null;
           $fp = fsockopen($host, 80);
           //printf("Open!\n");
@@ -138,5 +138,34 @@ class Logger extends BaseLogger
           fclose($fp);
 
           return $res;
+    }
+    
+    public static function getPassedChecksOfIssueHandler($extension)
+    {
+        $passedChecks = array();
+        $results = IssueHandler::getResults($extension);
+        foreach($results as $check => $entries) {
+            if(count($entries['issues']) == 0) {
+                $passedChecks[$check] = $entries;
+            }
+        }
+        return $passedChecks;
+    }
+    
+    public static function getFailedChecksOfIssueHandler($extension)
+    {
+        $failedChecks = array();
+        $results = IssueHandler::getResults($extension);
+        foreach($results as $check => $entries) {
+            if(count($entries['issues']) > 0) {
+                foreach($entries['issues'] as $issue) {
+                    $tmp = array();
+                    $tmp['type'] = $issue->getType();
+                    $tmp['comment'] = $issue->getComment();
+                    $failedChecks[$check]['comment'][] = $tmp;
+                }
+            }
+        }
+        return $failedChecks;
     }
 }

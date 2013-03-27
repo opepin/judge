@@ -65,24 +65,21 @@
   %body
     #header
       %h1 Judge
-      %h2= $extension . ' got score ' . $score
+      %h2.extension = $extension
     #content
       - foreach ($passedChecks as $check=>$passed)
         .check
           .passed
             %h3.title= $check
-            %div.score= $passed['score']
-            %div.comments
-              - foreach ($passed['comments'] as $comment)
-                %div.comment= $comment
-      - foreach ($failedChecks as $check=>$failed)
+            %div.score= 0
+      - foreach ($failedChecks as $check=>$comments)
         .check
           .failed
             %h3.title= $check
-            %div.score= $failed['score']
+            %div.score= 0
             %div.comments
-              - foreach ($failed['comments'] as $comment)
-                %div.comment= $comment
+              - foreach ($comments['comment'] as $entry)
+                %div.comment= "<strong>Issue of type " . $entry['type'] . ": </strong>" . $entry['comment']
     #footer
       %p
         Powered by Judge

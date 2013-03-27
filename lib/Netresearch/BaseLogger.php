@@ -289,6 +289,10 @@ class BaseLogger
         }
     }
     
+    public static function getIssueResults($extension)
+    {
+        return IssueHandler::getResults($extension);
+    }
     
 }
 

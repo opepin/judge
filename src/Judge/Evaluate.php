@@ -129,7 +129,7 @@ class Evaluate extends Command
             }
             
             Logger::printResults($extensionPath);
-//            $this->generateResultHtml($extensionPath);
+            $this->generateResultHtml($extensionPath);
         }
     }
 
@@ -180,14 +180,16 @@ class Evaluate extends Command
         $compiled   = $haml->compileString(file_get_contents($template), $template);
         file_put_contents($targetFile, $compiled);
 
-        $results = $this->convertResultCommentsToHtml(
-            Logger::getResultArray($extension)
-        );
-        $passedChecks = $results['passedChecks'];
-        $failedChecks = $results['failedChecks'];
-        $score        = $results['score'];
-
-
+//        $results = $this->convertResultCommentsToHtml(
+//            Logger::getResultArray($extension)
+//        );
+//        $results = $this->convertResultCommentsToHtml(Logger::getIssueResults($extension));
+        
+        $passedChecks = Logger::getPassedChecksOfIssueHandler($extension);
+        $failedChecks = Logger::getFailedChecksOfIssueHandler($extension);
+//        $failedChecks = $results['failedChecks'];
+//        $score        = $results['score'];
+        
         ob_start();
         include($targetFile);
         $result = ob_get_contents();

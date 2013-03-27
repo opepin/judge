@@ -144,16 +144,14 @@ class SourceCodeComplexity implements JudgePlugin
             $extensionPath, $suffixes, array(), $exclude, $commonPath
         );
 
-        $strategy = new \PHPCPD_Detector_Strategy_Default;
+        $strategy = new \PHPCPD_Detector_Strategy_Default();
         
         $detector = new \PHPCPD_Detector($strategy, $verbose);
 
-        $clones = $detector->copyPasteDetection(
+        $clones = @$detector->copyPasteDetection(
           $files, $minLines, $minTokens
         );
-
         $cpdPercentage = $clones->getPercentage();
-
         if ($this->settings->phpcpd->percentageGood < $cpdPercentage) {
             IssueHandler::addIssue(new Issue(
                     array(  "extension" =>  $extensionPath,
