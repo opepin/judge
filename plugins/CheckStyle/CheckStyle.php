@@ -6,11 +6,11 @@ use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
+use Netresearch\Plugin as Plugin;
 
-class CheckStyle implements JudgePlugin
+class CheckStyle extends Plugin implements JudgePlugin
 {
     protected $config;
-    protected $extensionPath;
     protected $settings;
     protected $results;
     protected $uniqueIssues = array(
@@ -21,8 +21,9 @@ class CheckStyle implements JudgePlugin
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->name   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->name};
+        $this->_pluginName   = current(explode('\\', __CLASS__));
+        $this->settings = $this->config->plugins->{$this->_pluginName};
+        $this->_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
     }
 
     /**
@@ -32,18 +33,20 @@ class CheckStyle implements JudgePlugin
      */
     public function execute($extensionPath)
     {
-        $this->extensionPath = $extensionPath;
-        $score          = 0;
-        $executable     = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
-        $score          = $this->settings->good;
-        $standardToUse  = $this->settings->standardToUse;
-        $csResults      = array();
-        $command = sprintf(
-            $executable . ' --ignore=*/jquery* --standard="%s" "%s"',
-            $standardToUse,
-            $extensionPath
+        $this->_extensionPath = $extensionPath;
+        $score = $this->settings->good;
+
+        $params = array(
+            'ignore' => '*/jquery*',
+            'standard' => $this->settings->standardToUse
         );
-        exec($command, $csResults);
+
+        try {
+            $csResults = $this->_executePhpCommand($this->config, $params);
+        } catch (\Zend_Exception $e) {
+            return $this->settings->unfinished;
+        }
+
         $csResults = $this->getClearedResults($csResults);
         // more issues found than allowed -> log them
         if ($this->settings->allowedIssues < sizeof($csResults)) {
@@ -53,7 +56,7 @@ class CheckStyle implements JudgePlugin
             }
             $this->logUniqueIssues();
         }
-        Logger::setScore($extensionPath, $this->name, $score);
+        Logger::setScore($extensionPath, $this->_pluginName, $score);
         return $score;
     }
 
@@ -116,11 +119,14 @@ class CheckStyle implements JudgePlugin
         foreach ($this->uniqueIssues as $issueType => $uniqueIssues) {
             foreach ($uniqueIssues as $message => $count) {
                 IssueHandler::addIssue(new Issue(
-                        array(  "extension" =>  $this->extensionPath,
-                                "checkname" =>  $this->name,
-                                "type"      =>  strtolower($issueType),
-                                "comment"   =>  $message . ' (' . $count . ' times).',
-                                "failed"    =>  true)));
+                        array(
+                            'extension' =>  $this->_extensionPath,
+                            'checkname' =>  $this->_pluginName,
+                            'type'      =>  strtolower($issueType),
+                            'comment'   =>  $message . ' (' . $count . ' times).',
+                            'failed'    =>  true
+                        )
+                ));
             }
         }
     }

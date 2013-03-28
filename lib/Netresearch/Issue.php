@@ -18,8 +18,8 @@ class Issue
     {
         foreach ($dataArray as $key => $value)
         {
-            //TODO: abfragen, ob attribut enthalten ist
-            $this->$key = $value;
+            $method = 'set' . ucfirst($key);
+            $this->$method($value);
         }
         return $this;
     }
@@ -44,12 +44,17 @@ class Issue
     
     public function setComment($comment)
     {
-        $this->comment = $comment;
+        $this->comment = ltrim(str_replace($this->extension, '', $comment), DIRECTORY_SEPARATOR);
         return $this;
     }
     
     public function setFiles($files)
     {
+        if (!empty($files)) {
+            foreach ($files as $key => $file) {
+                $files[$key] = ltrim(str_replace($this->extension, '', $file), DIRECTORY_SEPARATOR);
+            }
+        }
         $this->files = $files;
         return $this;
     }

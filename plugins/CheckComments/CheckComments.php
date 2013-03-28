@@ -6,8 +6,9 @@ use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
+use Netresearch\Plugin as Plugin;
 
-class CheckComments implements JudgePlugin
+class CheckComments extends Plugin implements JudgePlugin
 {
     protected $config;
     protected $settings;
@@ -19,8 +20,9 @@ class CheckComments implements JudgePlugin
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->name   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->name};
+        $this->_pluginName   = current(explode('\\', __CLASS__));
+        $this->settings = $this->config->plugins->{$this->_pluginName};
+        $this->_execCommand = 'vendor/pdepend/pdepend/src/bin/pdepend';
     }
 
     /**
@@ -30,43 +32,37 @@ class CheckComments implements JudgePlugin
      */
     public function execute($extensionPath)
     {
+        $this->_extensionPath = $extensionPath;
         $score = $this->settings->good;
         $lowerBoundary = $this->settings->lowerBoundary;
         $upperBoundary = $this->settings->upperBoundary;
         $clocToNclocRatio = $this->getClocToNclocRatio($extensionPath);
         
-        if ($clocToNclocRatio <= $lowerBoundary || $clocToNclocRatio >= $upperBoundary) {
-            $score = $this->settings->bad;
-            IssueHandler::addIssue(new Issue(
-                array(  "extension" => $extensionPath , "checkname" => $this->name,
-                        "type"      => 'cloc_to_ncloc',
-                        "comment"   => $clocToNclocRatio,
-                        "failed"    => true)));
-        }
+        $failed = ($clocToNclocRatio <= $lowerBoundary || $clocToNclocRatio >= $upperBoundary);
+        $score = $failed ? $this->settings->bad : $this->settings->good;
         IssueHandler::addIssue(new Issue(
-                array(  "extension" => $extensionPath , "checkname" => $this->name,
-                        "type"      => 'cloc_to_ncloc',
-                        "comment"   => $clocToNclocRatio,
-                        "failed"    => false)));
-        
+            array('extension' => $extensionPath ,
+                  'checkname' => $this->_pluginName,
+                  'type'      => 'cloc_to_ncloc',
+                  'comment'   => $clocToNclocRatio,
+                  'failed'    => $failed
+            )
+        ));
+
+
         $unfinishedCodeToNclocRatio = $this->getUnfinishedCodeToNclocRatio($extensionPath);
-        
-        if ($this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio) {
-            $score = $this->settings->bad;
-            IssueHandler::addIssue(new Issue(
-                array(  "extension" => $extensionPath, 
-                        "checkname" => $this->name,
-                        "type"      => 'unfinished_code_to_ncloc',
-                        "comment"   => $unfinishedCodeToNclocRatio,
-                        "failed"    => true)));
-        }
+        $failed = $this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio;
+        $score = $failed ? $this->settings->bad : $this->settings->good;
         IssueHandler::addIssue(new Issue(
-                array(  "extension" => $extensionPath, 
-                        "checkname" => $this->name,
-                        "type"      => 'unfinished_code_to_ncloc',
-                        "comment"   => $unfinishedCodeToNclocRatio,
-                        "failed"    => false)));
-        Logger::setScore($extensionPath, $this->name, $score);
+            array('extension' => $extensionPath ,
+                'checkname' => $this->_pluginName,
+                'type'      => 'unfinished_code_to_ncloc',
+                'comment'   => $unfinishedCodeToNclocRatio,
+                'failed'    => $failed
+            )
+        ));
+
+        Logger::setScore($extensionPath, $this->_pluginName, $score);
         return $score;
     }
 
@@ -126,10 +122,16 @@ class CheckComments implements JudgePlugin
             $metrics = $precalculatedResults['resultValue']['metrics'];
         }
         if (0 == count($metrics)) {
-            $executable = 'vendor/pdepend/pdepend/src/bin/pdepend';
-            $tempXml = $this->settings->tmpXmlFilename;
-            $command = sprintf($executable . ' --summary-xml="%s" "%s"', $tempXml, $extensionPath);
-            exec($command);
+            $tempXml = str_replace('.xml', (string) $this->config->token . '.xml', $this->settings->tmpXmlFilename);
+            $params = array(
+                'summary-xml' => $tempXml
+            );
+
+            try {
+                $this->_executePhpCommand($this->config, $params);
+            } catch (\Zend_Exception $e) {
+                return $this->settings->unfinished;
+            }
             $metrics = current(simplexml_load_file($tempXml));
             unlink($tempXml);
         }

@@ -6,11 +6,11 @@ use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
+use Netresearch\Plugin as Plugin;
 
-class SecurityCheck implements JudgePlugin
+class SecurityCheck extends Plugin implements JudgePlugin
 {
     protected $config;
-    protected $extensionPath;
     protected $settings;
     protected $results;
 
@@ -21,8 +21,8 @@ class SecurityCheck implements JudgePlugin
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->name   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->name};
+        $this->_pluginName   = current(explode('\\', __CLASS__));
+        $this->settings = $this->config->plugins->{$this->_pluginName};
     }
 
     /**
@@ -32,19 +32,19 @@ class SecurityCheck implements JudgePlugin
      */
     public function execute($extensionPath)
     {
-        $this->extensionPath = $extensionPath;
-        $settings = $this->config->plugins->{$this->name};
+        $this->_extensionPath = $extensionPath;
+        $settings = $this->config->plugins->{$this->_pluginName};
         $score = $settings->good;
-        if ($settings->allowedRequestParams < $this->checkForRequestParams($extensionPath)) {
-            $score = $settings->bad;
+        if ($this->settings->allowedRequestParams < $this->checkForRequestParams($extensionPath)) {
+            $score = $this->settings->bad;
         }
-        if ($settings->allowedMissingEscaping < $this->checkForEscaping($extensionPath)) {
-            $score = $settings->bad;
+        if ($this->settings->allowedMissingEscaping < $this->checkForEscaping($extensionPath)) {
+            $score = $this->settings->bad;
         }
-        if ($settings->allowedSQLQueries < $this->checkForSQLQueries($extensionPath)) {
-            $score = $settings->bad;
+        if ($this->settings->allowedSQLQueries < $this->checkForSQLQueries($extensionPath)) {
+            $score = $this->settings->bad;
         }
-        Logger::setScore($extensionPath, $this->name, $score);
+        Logger::setScore($extensionPath, $this->_pluginName, $score);
         return $score;
     }
 
@@ -58,13 +58,16 @@ class SecurityCheck implements JudgePlugin
     {
         $foundTokens = 0;
         foreach ($this->settings->requestParamsPattern as $requestPattern) {
-            $filesWithThatToken = array();
             $command = 'grep -riEl "' . $requestPattern . '" ' . $extensionPath . '/app';
-            exec($command, $filesWithThatToken, $return);
+            try {
+                $filesWithThatToken = $this->_executeCommand($command);
+            } catch (\Zend_Exception $e) {
+                return $this->settings->unfinished;
+            }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->name,
+                                "checkname" => $this->_pluginName,
                                 "type"      => 'params',
                                 "comment"   => $requestPattern,
                                 "files"     => $filesWithThatToken,
@@ -72,7 +75,7 @@ class SecurityCheck implements JudgePlugin
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
-            Logger::setResultValue($extensionPath, $this->name, $requestPattern, count($filesWithThatToken));
+            Logger::setResultValue($extensionPath, $this->_pluginName, $requestPattern, count($filesWithThatToken));
         }
         return $foundTokens;
     }
@@ -87,13 +90,16 @@ class SecurityCheck implements JudgePlugin
     {
         $foundTokens = 0;
         foreach ($this->settings->unescapedOutputPattern as $unescapedOutputPattern) {
-            $filesWithThatToken = array();
             $command = 'grep -riEl "' . $unescapedOutputPattern . '" ' . $extensionPath . '/app';
-            exec($command, $filesWithThatToken, $return);
+            try {
+                $filesWithThatToken = $this->_executeCommand($command);
+            } catch (\Zend_Exception $e) {
+                return $this->settings->unfinished;
+            }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->name,
+                                "checkname" => $this->_pluginName,
                                 "type"      => 'escape',
                                 "comment"   => $unescapedOutputPattern,
                                 "files"     => $filesWithThatToken,
@@ -101,7 +107,7 @@ class SecurityCheck implements JudgePlugin
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
-            Logger::setResultValue($extensionPath, $this->name, $unescapedOutputPattern, count($filesWithThatToken));
+            Logger::setResultValue($extensionPath, $this->_pluginName, $unescapedOutputPattern, count($filesWithThatToken));
         }
         return $foundTokens;
     }
@@ -115,13 +121,16 @@ class SecurityCheck implements JudgePlugin
     {
         $foundTokens = 0;
         foreach ($this->settings->sqlQueryPattern as $sqlQueryPattern) {
-            $filesWithThatToken = array();
             $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $extensionPath . '/app';
-            exec($command, $filesWithThatToken, $return);
+            try {
+                $filesWithThatToken = $this->_executeCommand($command);
+            } catch (\Zend_Exception $e) {
+                return $this->settings->unfinished;
+            }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->name,
+                                "checkname" => $this->_pluginName,
                                 "type"      => 'sql',
                                 "comment"   => $sqlQueryPattern,
                                 "files"     => $filesWithThatToken,
@@ -129,7 +138,7 @@ class SecurityCheck implements JudgePlugin
                 
                 $foundTokens = $foundTokens + count($filesWithThatToken);
             }
-            Logger::setResultValue($extensionPath, $this->name, $sqlQueryPattern, count($filesWithThatToken));
+            Logger::setResultValue($extensionPath, $this->_pluginName, $sqlQueryPattern, count($filesWithThatToken));
         }
         return $foundTokens;
     }

@@ -39,6 +39,7 @@ class Evaluate extends Command
         $this->addOption('vendor',  'd', InputOption::VALUE_OPTIONAL, 'provide the vendor of the extension');
         $this->addOption('extension',  'e', InputOption::VALUE_OPTIONAL, 'provide the name of the extension');
         $this->addOption('ext_version',  's', InputOption::VALUE_OPTIONAL, 'provide the extension version');
+        $this->addOption('php-option', 'o', InputOption::VALUE_OPTIONAL, 'php options for child processes');
     }
 
     /**
@@ -63,6 +64,15 @@ class Evaluate extends Command
         if ($input->getOption('user-token')) {
             Logger::setToken($input->getOption('user-token'));
             $this->config->token = $input->getOption('user-token');
+        }
+
+        if ($input->getOption('php-option')) {
+            $this->config->phpOptions = explode(',', $input->getOption('php-option'));
+            foreach ($this->config->phpOptions as $options) {
+                list($option, $value) = explode('=', $options);
+                ini_set($option, $value);
+
+            }
         }
         
         
