@@ -7,8 +7,10 @@ use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
 use Netresearch\PluginInterface as JudgePlugin;
 use \Zend_Exception as Exception;
+use \dibi as dibi;
+use Netresearch\Plugin as Plugin;
 
-class CodeCoverage implements JudgePlugin
+class CodeCoverage extends Plugin implements JudgePlugin
 {
     /**
      * The global Judge configuration
@@ -29,6 +31,12 @@ class CodeCoverage implements JudgePlugin
     protected $magentoTarget;
 
     /**
+     * DB name for jumpstorm running
+     * @var string
+     */
+    protected $_testDbName;
+
+    /**
      * The names of the extensions to be evaluated as given given in their
      * config.xml file, <phpunit> section.
      * @link http://www.ecomdev.org/2011/02/01/phpunit-and-magento-yes-you-can.html
@@ -39,8 +47,8 @@ class CodeCoverage implements JudgePlugin
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->name   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->name};
+        $this->_pluginName   = current(explode('\\', __CLASS__));
+        $this->settings = $this->config->plugins->{$this->_pluginName};
     }
 
     /**
@@ -56,6 +64,7 @@ class CodeCoverage implements JudgePlugin
         if (!extension_loaded('xdebug')) {
             throw new Exception("The Xdebug extension is not loaded.");
         }
+        $this->_extensionPath = $extensionPath;
 
         // scan for phpunit configuration
         $this->moduleNames = XmlReader::getModuleNames($extensionPath);
@@ -64,10 +73,18 @@ class CodeCoverage implements JudgePlugin
             return $score;
         }
 
-        $this->setupUnitTestEnvironment($extensionPath);
+        try {
+            $this->setupUnitTestEnvironment($extensionPath);
+        } catch (Exception $e) {
+            $this->__cleanTestEnvironment();
+            Logger::log(implode(PHP_EOL, $e->getMessage()));
+            Logger::error('Magento installation failed', array(), false);
+            return $this->settings->unfinished;
+        }
+
 
         $score = $this->evaluateTestCoverage($extensionPath);
-        Logger::setScore($extensionPath, $this->name, $score);
+        Logger::setScore($extensionPath, $this->_pluginName, $score);
         return $score;
     }
 
@@ -82,8 +99,8 @@ class CodeCoverage implements JudgePlugin
     protected function evaluateTestCoverage($extensionPath)
     {
         $score = $this->settings->good;
-        $executable = 'vendor/bin/phpunit';
-        $phpUnitCoverageFile = 'tmp/codecoverage' . (string) $this->config->token . '.xml';
+        $executable = realpath('vendor/bin/phpunit');
+        $phpUnitCoverageFile = $this->magentoTarget . '/codecoverage' . (string) $this->config->token . '.xml';
 
         $phpUnitSwitches = array(
             sprintf("--coverage-clover %s", $phpUnitCoverageFile),
@@ -97,15 +114,22 @@ class CodeCoverage implements JudgePlugin
             );
         }
         $switches = implode(' ', $phpUnitSwitches);
-        $testFile = $this->magentoTarget . '/UnitTests.php';
-        exec("$executable $switches $testFile");
-
-
-
-
+        $testFile = $this->magentoTarget;
+        $command = 'cd ' . $this->magentoTarget . ' && ' . $executable . ' ' . $switches . ' ' . $testFile;
         $pdependSummaryFile = 'summary' . (string) $this->config->token . '.xml';
         $execString = sprintf('vendor/pdepend/pdepend/src/bin/pdepend --summary-xml="%s" "%s"', $pdependSummaryFile, $extensionPath);
-        exec($execString);
+
+        try {
+            $this->_executeCommand($command);
+            $this->_executeCommand($execString);
+        } catch (Exception $e) {
+            $this->__cleanTestEnvironment();
+            unlink($pdependSummaryFile);
+            unlink($phpUnitCoverageFile);
+            $this->_cleanTestEnvironment();
+            return $this->settings->unfinished;
+        }
+
         $phpUnitXpaths = array();
         foreach ($this->moduleNames as $modulePrefixString) {
             $phpUnitXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')]/../metrics";
@@ -116,7 +140,7 @@ class CodeCoverage implements JudgePlugin
             if (array_key_exists($codeCoverageType, $codeCoverages)) {
                 IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->name,
+                                "checkname" => $this->_pluginName,
                                 "type"      => $codeCoverageType,
                                 "comment"   => $codeCoverages[$codeCoverageType],
                                 "failed"    =>  true)));
@@ -144,18 +168,56 @@ class CodeCoverage implements JudgePlugin
             foreach ($notCoveredClasses as $notCoveredClass) {
                 IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->name,
-                                "type"      => 'none',
+                                "checkname" => $this->_pluginName,
+                                "type"      => 'notCovered',
                                 "comment"   => '<comment>Following class is not covered by any test: ' . $notCoveredClass . ' </comment>',
                                 "failed"    =>  false)));
             }
         }
         unlink($pdependSummaryFile);
         unlink($phpUnitCoverageFile);
-        // remove test source dir
-        exec(sprintf('rm -rf %s', $this->magentoTarget));
+        $this->_cleanTestEnvironment();
 
         return $score;
+    }
+
+    /**
+     * Clean test environment
+     */
+    protected function _cleanTestEnvironment()
+    {
+        try {
+            // remove test source dir
+            exec(sprintf('rm -rf %s', $this->magentoTarget));
+
+            //drop test databases
+            $jumpstormConfig = new \Zend_Config_Ini(
+                $this->settings->jumpstormIniFile, null, array('allowModifications' => true)
+            );
+            $databaseConfig = $jumpstormConfig->common->db;
+            if (0 == strlen($databaseConfig->password)) {
+                unset($databaseConfig->password);
+            }
+            $testDbNames = array($this->_testDbName, $this->_testDbName . '_test');
+            foreach ($testDbNames as $dbName) {
+                $this->_dropTestDatabase($databaseConfig, $dbName);
+            }
+        } catch (Exception $e) {
+            Logger::error($e->getMessage(), array(), false);
+        }
+    }
+
+    /**
+     * @param Zend_Config_Ini $databaseConfig
+     * @param string $dbName
+     */
+    protected function _dropTestDatabase($databaseConfig, $dbName)
+    {
+        $basedir = realpath(dirname(__FILE__) . '/../../');
+        require_once $basedir . '/vendor/dg/dibi/dibi/dibi.php';
+        $databaseConfig->name = $dbName;
+        dibi::connect($databaseConfig);
+        dibi::nativeQuery('DROP DATABASE ' . $dbName);
     }
 
     /**
@@ -305,6 +367,7 @@ class CodeCoverage implements JudgePlugin
         }
 
         $this->magentoTarget = rtrim($jumpstormConfig->common->magento->target, DIRECTORY_SEPARATOR);
+        $this->_testDbName = $jumpstormConfig->common->db->name;
 
         // import test environment configuration from console: [extensions] section
         $jumpstormConfig->extensions = array(
@@ -326,7 +389,6 @@ class CodeCoverage implements JudgePlugin
 
             $executable = 'vendor/netresearch/jumpstorm/jumpstorm';
             $params = '';
-            $exec = 'exec';
             if (Logger::VERBOSITY_MAX == Logger::getVerbosity()) {
                 $params .= ' -v';
             }
@@ -335,28 +397,8 @@ class CodeCoverage implements JudgePlugin
                 . ' && ' . sprintf('%s extensions -c %s %s', $executable, $iniFile, $params);
 
             Logger::notice('Setting up Magento environment via Jumpstorm');
-            if (Logger::VERBOSITY_MAX == Logger::getVerbosity()) {
-                $error = passthru($command);
-            } else {
-                exec($command, $output, $error);
-                if ($error) {
-                    $origVerbosity = Logger::getVerbosity();
-                    Logger::setVerbosity(Logger::VERBOSITY_MAX);
-                    Logger::log(implode(PHP_EOL, $output));
-                    Logger::setVerbosity($origVerbosity);
-                }
-            }
-            if ($error) {
-                Logger::error('Magento installation failed');
-            }
+            $this->_executeCommand($command);
             unlink($iniFile);
         }
-
-//        if (!is_file($this->magentoTarget . '/UnitTests.php')) {
-//            throw new Exception(sprintf(
-//                "No UnitTests.php found in Magento root directory (%s)",
-//                $this->magentoTarget
-//            ));
-//        }
     }
 }
