@@ -3,7 +3,6 @@ namespace Netresearch;
 
 use Netresearch\Config;
 use Netresearch\IssueHandler;
-use \Zend_Exception;
 
 /**
  * Base class for plugins
@@ -47,7 +46,7 @@ class Plugin
     /**
      * @param string $command
      * @return array
-     * @throws \Zend_Exception
+     * @throws Exception
      */
     protected function _executeCommand($command)
     {
@@ -55,20 +54,28 @@ class Plugin
         exec($command, $response, $status);
 
         if ($status == 255) {
-            $message = 'Failed to execute ' . $this->_pluginName .' plugin.';
-            IssueHandler::addIssue(new Issue(
-                array(
-                    'extension' =>  $this->_extensionPath,
-                    'checkname' =>  $this->_pluginName,
-                    'type'      =>  'unfinished',
-                    'comment'   =>  $message,
-                    'failed'    =>  false
-                )
-            ));
-            throw new Zend_Exception($message);
+            $this->setUnfinishedIssue();
+            throw new \Exception('Failed to execute ' . $this->_pluginName .' plugin.');
         }
 
         return $response;
+    }
+
+    /**
+     *
+     */
+    public function setUnfinishedIssue()
+    {
+        $message = 'Failed to execute ' . $this->_pluginName .' plugin.';
+        IssueHandler::addIssue(new Issue(
+            array(
+                'extension' =>  $this->_extensionPath,
+                'checkname' =>  $this->_pluginName,
+                'type'      =>  'unfinished',
+                'comment'   =>  $message,
+                'failed'    =>  false
+            )
+        ));
     }
 
 
