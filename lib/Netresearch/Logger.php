@@ -62,7 +62,7 @@ class Logger extends BaseLogger
         }
     }
     
-    private function printOnOutput($extension)
+    private static function printOnOutput($extension)
     {
         self::$output->writeln("Vendor: " . self::getExtVendor());
         self::$output->writeln("Extension: " . self::getExtName());
