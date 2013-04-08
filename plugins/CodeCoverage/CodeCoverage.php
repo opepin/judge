@@ -396,7 +396,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
                 . ' && ' . sprintf('%s unittesting -c %s %s', $executable, $iniFile, $params)
                 . ' && ' . sprintf('%s extensions -c %s %s', $executable, $iniFile, $params);
 
-            //Logger::notice('Setting up Magento environment via Jumpstorm');
+            Logger::notice('Setting up Magento environment via Jumpstorm');
             $this->_executeCommand($command);
             unlink($iniFile);
         }
