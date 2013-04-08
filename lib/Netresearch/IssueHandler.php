@@ -6,9 +6,9 @@ class IssueHandler
 
     public static $results = array();
 
-    public static function getResults() 
+    public static function getResults($extension) 
     {
-        return self::$results;
+        return self::$results[$extension];
     }
     
     public static function registerCheck($extension, $checkName)
