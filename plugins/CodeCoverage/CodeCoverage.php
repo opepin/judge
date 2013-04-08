@@ -104,8 +104,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
 
         $phpUnitSwitches = array(
             sprintf("--coverage-clover %s", $phpUnitCoverageFile),
-            sprintf("--filter %s", implode('|', $this->moduleNames)),
-            sprintf("--include-path %s", $this->magentoTarget)
+            sprintf("--filter %s", implode('|', $this->moduleNames))
         );
         if (isset($this->settings->phpUnitSwitches)) {
             $phpUnitSwitches = array_merge(
