@@ -114,7 +114,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
         }
         $switches = implode(' ', $phpUnitSwitches);
         $testFile = $this->magentoTarget;
-        $command = 'cd ' . $this->magentoTarget . ' && ' . $executable . ' ' . $switches . ' ' . $testFile;
+        $command = 'cd ' . $this->magentoTarget . ' && ' . $executable . ' ' . $switches;
         $pdependSummaryFile = 'summary' . (string) $this->config->token . '.xml';
         $execString = sprintf('vendor/pdepend/pdepend/src/bin/pdepend --summary-xml="%s" "%s"', $pdependSummaryFile, $extensionPath);
 
@@ -176,7 +176,6 @@ class CodeCoverage extends Plugin implements JudgePlugin
         unlink($pdependSummaryFile);
         unlink($phpUnitCoverageFile);
         $this->_cleanTestEnvironment();
-
         return $score;
     }
 
