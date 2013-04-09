@@ -7,13 +7,19 @@ Judge is a tool to examine Magento extensions regarding their qualitiy and compa
 Installation
 ============
 
+If Composer is not yet installed on your system, you first have to install Composer:
+
+::
+
+    curl -s https://getcomposer.org/installer | php;
+
 Install judge with Composer_:
 
 .. _Composer: http://getcomposer.org/
 
 ::
 
-    git clone git://github.com/NetresearchAppFactory/judge.git && cd judge && curl -s https://getcomposer.org/installer | php; php composer.phar install --prefer-source
+    git clone git://github.com/NetresearchAppFactory/judge.git && cd judge && php composer.phar install --prefer-source
 
 *That's all. Happy judging :)*
 
