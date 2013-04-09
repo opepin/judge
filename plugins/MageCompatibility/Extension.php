@@ -402,9 +402,9 @@ class Extension extends Config
     {
         $classPath = current(glob($this->extensionPath . '/app/code/*/' . str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php'));
         if (file_exists($classPath)) {
-            if ($this->isExtensionDatabaseAccessor($className, $methodName)) {
+            /*if ($this->isExtensionDatabaseAccessor($className, $methodName)) {
                 return true;
-            }
+            }*/
             $command = sprintf('grep -i "function %s" %s', $methodName, $classPath);
             exec($command, $matches, $notFound);
             if (0 < count($matches)) {

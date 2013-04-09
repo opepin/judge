@@ -6,10 +6,11 @@ use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
 use Netresearch\PluginInterface as JudgePlugin;
+use Netresearch\Plugin as Plugin;
 
 use \dibi as dibi;
 
-class MageCompatibility implements JudgePlugin
+class MageCompatibility extends Plugin implements JudgePlugin
 {
     protected $config   = null;
     protected $name     = null;
@@ -18,133 +19,139 @@ class MageCompatibility implements JudgePlugin
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->name   = current(explode('\\', __CLASS__));
+        $this->_pluginName   = current(explode('\\', __CLASS__));
     }
 
     public function execute($extensionPath)
     {
-        $this->settings = $this->config->plugins->{$this->name};
-        $this->extensionPath = $extensionPath;
-        $this->connectTagDatabase();
+        $this->settings = $this->config->plugins->{$this->_pluginName};
+        $this->_extensionPath = $extensionPath;
+        try{
+            $this->connectTagDatabase();
 
-        $availableVersions = dibi::query('SELECT concat( m.edition, " ", m.version ) as Magento FROM magento m ORDER BY Magento')->fetchPairs();
-        $supportedVersions = array();
+            $availableVersions = dibi::query('SELECT concat( m.edition, " ", m.version ) as Magento FROM magento m ORDER BY Magento')->fetchPairs();
+            $supportedVersions = array();
 
-        $extension = new Extension($this->extensionPath);
-        $methods = $extension->getUsedMagentoMethods();
-        $classes = $extension->getUsedMagentoClasses();
-        
-        IssueHandler::addIssue(new Issue(
-                array(  "extension" =>  $extensionPath,
-                        "checkname" => $this->name,
-                        "type"      => 'mage_compatibility',
-                        "comment"   => sprintf('Extension uses %d classes and %d methods of Magento core',$classes->count(),$methods->count()),
-                        "failed"    =>  true)));
+            $extension = new Extension($this->_extensionPath);
+            $methods = $extension->getUsedMagentoMethods();
+            $classes = $extension->getUsedMagentoClasses();
 
-        $incompatibleVersions = array();
-        foreach ($availableVersions as $version) {
-            $incompatibleVersions[$version] = array(
-                'classes'   => array(),
-                'methods'   => array(),
-                'constants' => array()
-            );
-        }
-        foreach ($classes as $class) {
-            $class->setConfig($this->settings);
-            $supportedVersions = $class->getMagentoVersions();
-            if (is_array($supportedVersions)) {
-                $tagIncompatibleVersions = array_diff($availableVersions, $supportedVersions);
-                foreach ($tagIncompatibleVersions as $version) {
-                    $incompatibleVersions[$version]['classes'][] = $class->getName();
+            IssueHandler::addIssue(new Issue(
+                    array(  "extension" =>  $extensionPath,
+                            "checkname" => $this->_pluginName,
+                            "type"      => 'mage_compatibility',
+                            "comment"   => sprintf('Extension uses %d classes and %d methods of Magento core',$classes->count(),$methods->count()),
+                            "failed"    =>  true)));
+
+            $incompatibleVersions = array();
+            foreach ($availableVersions as $version) {
+                $incompatibleVersions[$version] = array(
+                    'classes'   => array(),
+                    'methods'   => array(),
+                    'constants' => array()
+                );
+            }
+            foreach ($classes as $class) {
+                $class->setConfig($this->settings);
+                $supportedVersions = $class->getMagentoVersions();
+                if (is_array($supportedVersions)) {
+                    $tagIncompatibleVersions = array_diff($availableVersions, $supportedVersions);
+                    foreach ($tagIncompatibleVersions as $version) {
+                        $incompatibleVersions[$version]['classes'][] = $class->getName();
+                    }
                 }
             }
-        }
-        foreach ($methods as $method) {
-            $isExtensionMethod = false;
-            $context = current($method->getContext());
-            $method->setConfig($this->settings);
-            $supportedVersions = $method->getMagentoVersions();
-            //echo $context['class'] . '->' . $method->getName() . ' ';
-            if (false == is_array($supportedVersions)) {
-                continue;
-            }
-            $tagIncompatibleVersions = array_diff($availableVersions, $supportedVersions);
-            foreach ($tagIncompatibleVersions as $version) {
-                $methodName = $method->getContext('class')
-                    . '->' . $method->getName()
-                    . '(' . implode(', ', $method->getParams()) . ')';
-                if ($extension->hasMethod($method->getName())) {
-                    $methodName .= ' [maybe part of the extension]';
+            foreach ($methods as $method) {
+                $isExtensionMethod = false;
+                $context = current($method->getContext());
+                $method->setConfig($this->settings);
+                $supportedVersions = $method->getMagentoVersions();
+                //echo $context['class'] . '->' . $method->getName() . ' ';
+                if (false == is_array($supportedVersions)) {
                     continue;
                 }
-                $incompatibleVersions[$version]['methods'][] = $methodName;
+                $tagIncompatibleVersions = array_diff($availableVersions, $supportedVersions);
+                foreach ($tagIncompatibleVersions as $version) {
+                    $methodName = $method->getContext('class')
+                        . '->' . $method->getName()
+                        . '(' . implode(', ', $method->getParams()) . ')';
+                    if ($extension->hasMethod($method->getName())) {
+                        $methodName .= ' [maybe part of the extension]';
+                        continue;
+                    }
+                    $incompatibleVersions[$version]['methods'][] = $methodName;
+                }
             }
-        }
 
-        $compatibleVersions = array();
+            $compatibleVersions = array();
 
-        foreach ($incompatibleVersions as $version=>$incompatibilities) {
-            $message = '';
-            $incompatibleClasses   = array_unique($incompatibilities['classes']);
-            $incompatibleMethods   = array_unique($incompatibilities['methods']);
-            $incompatibleConstants = array_unique($incompatibilities['constants']);
-            if (0 < count($incompatibleClasses)) {
-                $message .= sprintf(
-                    "<comment>The following classes are not compatible to Magento %s:</comment>\n  * %s\n",
-                    $version,
-                    implode("\n  * ", $incompatibleClasses)
-                );
+            foreach ($incompatibleVersions as $version=>$incompatibilities) {
+                $message = '';
+                $incompatibleClasses   = array_unique($incompatibilities['classes']);
+                $incompatibleMethods   = array_unique($incompatibilities['methods']);
+                $incompatibleConstants = array_unique($incompatibilities['constants']);
+                if (0 < count($incompatibleClasses)) {
+                    $message .= sprintf(
+                        "<comment>The following classes are not compatible to Magento %s:</comment>\n  * %s\n",
+                        $version,
+                        implode("\n  * ", $incompatibleClasses)
+                    );
+                }
+                if (0 < count($incompatibleMethods)) {
+                    $message .= sprintf(
+                        "<comment>The following methods are not compatible to Magento %s:</comment>\n  * %s\n",
+                        $version,
+                        implode("\n  * ", $incompatibleMethods)
+                    );
+                }
+                if (0 < count($incompatibleConstants)) {
+                    $message .= sprintf(
+                        "<comment>The following constants are not compatible to Magento %s:</comment>\n  * %s\n",
+                        $version,
+                        implode("\n  * ", $incompatibleConstants)
+                    );
+                }
+                if (0 < strlen($message)) {
+                    IssueHandler::addIssue(new Issue(
+                            array(  "extension" => $extensionPath ,"checkname" => $this->_pluginName,
+                                    "type"      => 'mage_compatibility',
+                                    "comment"   => sprintf("<error>Extension is not compatible to Magento %s</error>\n%s", $version, $message),
+                                    "failed"    =>  true)));
+                } else {
+                    $compatibleVersions[] = $version;
+                }
             }
-            if (0 < count($incompatibleMethods)) {
-                $message .= sprintf(
-                    "<comment>The following methods are not compatible to Magento %s:</comment>\n  * %s\n",
-                    $version,
-                    implode("\n  * ", $incompatibleMethods)
-                );
-            }
-            if (0 < count($incompatibleConstants)) {
-                $message .= sprintf(
-                    "<comment>The following constants are not compatible to Magento %s:</comment>\n  * %s\n",
-                    $version,
-                    implode("\n  * ", $incompatibleConstants)
-                );
-            }
-            if (0 < strlen($message)) {
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension" => $extensionPath ,"checkname" => $this->name,
-                                "type"      => 'mage_compatibility',
-                                "comment"   => sprintf("<error>Extension is not compatible to Magento %s</error>\n%s", $version, $message),
-                                "failed"    =>  true)));
-            } else {
-                $compatibleVersions[] = $version;
-            }
-        }
-        IssueHandler::addIssue(new Issue(
-                array(  "extension" => $extensionPath ,"checkname" => $this->name,
-                        "type"      => 'mage_compatibility',
-                        "comment"   => 'Checked Magento versions: ' . implode(', ', $availableVersions) . "\n"
-                        . '* Extension seems to support following Magento versions: ' . implode(', ', $compatibleVersions),
-                        "failed"    =>  false)));
-        
-        foreach (array_keys($incompatibleVersions) as $key) {
-            if (0 == count($incompatibleVersions[$key]['classes']) &&
-                0 == count($incompatibleVersions[$key]['methods']) &&
-                0 == count($incompatibleVersions[$key]['constants'])
-                ) {
-                unset($incompatibleVersions[$key]);
-            }
-        }
-        if ($this->containsNoLatestVersion(array_keys($incompatibleVersions), 'CE')) {
             IssueHandler::addIssue(new Issue(
-                    array(  "extension" => $extensionPath ,"checkname" => $this->name,
+                    array(  "extension" => $extensionPath ,"checkname" => $this->_pluginName,
                             "type"      => 'mage_compatibility',
-                            "comment"   => sprintf('Extension supports Magento at least from CE version %s and EE version %s', 
-                             $this->settings->min->ce, $this->settings->min->ee),
+                            "comment"   => 'Checked Magento versions: ' . implode(', ', $availableVersions) . "\n"
+                            . '* Extension seems to support following Magento versions: ' . implode(', ', $compatibleVersions),
                             "failed"    =>  false)));
-        
-            
-            Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $this->settings->good);
-            return $this->settings->good;
+
+            foreach (array_keys($incompatibleVersions) as $key) {
+                if (0 == count($incompatibleVersions[$key]['classes']) &&
+                    0 == count($incompatibleVersions[$key]['methods']) &&
+                    0 == count($incompatibleVersions[$key]['constants'])
+                    ) {
+                    unset($incompatibleVersions[$key]);
+                }
+            }
+            if ($this->containsNoLatestVersion(array_keys($incompatibleVersions), 'CE')) {
+                IssueHandler::addIssue(new Issue(
+                        array(  "extension" => $extensionPath ,"checkname" => $this->_pluginName,
+                                "type"      => 'mage_compatibility',
+                                "comment"   => sprintf('Extension supports Magento at least from CE version %s and EE version %s',
+                                 $this->settings->min->ce, $this->settings->min->ee),
+                                "failed"    =>  false)));
+
+
+                Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $this->settings->good);
+                return $this->settings->good;
+            }
+        } catch (\Exception $e) {
+            $this->setUnfinishedIssue();
+            Logger::error(implode(PHP_EOL, $e->getMessage()), array(), false);
+            return $this->settings->unfinished;
         }
         Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $this->settings->bad);
         return $this->settings->bad;
