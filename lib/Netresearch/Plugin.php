@@ -64,9 +64,13 @@ class Plugin
     /**
      *
      */
-    public function setUnfinishedIssue()
+    public function setUnfinishedIssue($reason = '')
     {
         $message = 'Failed to execute ' . $this->_pluginName .' plugin.';
+        // if a specific reason is given, append it to the message
+        if (0 < strlen(trim($reason))) {
+            $message .= ' reason: ' . $reason;
+        }
         IssueHandler::addIssue(new Issue(
             array(
                 'extension' =>  $this->_extensionPath,

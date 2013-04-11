@@ -113,7 +113,6 @@ class CodeCoverage extends Plugin implements JudgePlugin
             );
         }
         $switches = implode(' ', $phpUnitSwitches);
-        $testFile = $this->magentoTarget;
         $command = 'cd ' . $this->magentoTarget . ' && ' . $executable . ' ' . $switches;
         $pdependSummaryFile = 'summary' . (string) $this->config->token . '.xml';
         $execString = sprintf('vendor/pdepend/pdepend/src/bin/pdepend --summary-xml="%s" "%s"', $pdependSummaryFile, $extensionPath);
@@ -123,8 +122,17 @@ class CodeCoverage extends Plugin implements JudgePlugin
             $this->_executeCommand($execString);
         } catch (\Exception $e) {
             $this->setUnfinishedIssue();
-            unlink($pdependSummaryFile);
-            unlink($phpUnitCoverageFile);
+            if (file_exists($pdependSummaryFile)) {
+                unlink($pdependSummaryFile);
+            }
+            if (file_exists($phpUnitCoverageFile)) {
+                unlink($phpUnitCoverageFile);
+            }
+            $this->_cleanTestEnvironment();
+            return $this->settings->unfinished;
+        }
+        if (!file_exists($phpUnitCoverageFile) || !file_exists($pdependSummaryFile)) {
+            $this->setUnfinishedIssue();
             $this->_cleanTestEnvironment();
             return $this->settings->unfinished;
         }
@@ -395,7 +403,10 @@ class CodeCoverage extends Plugin implements JudgePlugin
                 . ' && ' . sprintf('%s extensions -c %s %s', $executable, $iniFile, $params);
 
             Logger::notice('Setting up Magento environment via Jumpstorm');
-            $this->_executeCommand($command);
+            $output = $this->_executeCommand($command);
+            if (Logger::VERBOSITY_MAX == Logger::getVerbosity()) {
+                Logger::log(implode("\n", $output));
+            }
             unlink($iniFile);
         }
     }
