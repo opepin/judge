@@ -192,24 +192,26 @@ class CodeCoverage extends Plugin implements JudgePlugin
      */
     protected function _cleanTestEnvironment()
     {
-        try {
-            // remove test source dir
-            exec(sprintf('rm -rf %s', $this->magentoTarget));
+        if ($this->settings->useJumpstorm == true) {
+            try {
+                // remove test source dir
+                exec(sprintf('rm -rf %s', $this->magentoTarget));
 
-            //drop test databases
-            $jumpstormConfig = new \Zend_Config_Ini(
-                $this->settings->jumpstormIniFile, null, array('allowModifications' => true)
-            );
-            $databaseConfig = $jumpstormConfig->common->db;
-            if (0 == strlen($databaseConfig->password)) {
-                unset($databaseConfig->password);
+                //drop test databases
+                $jumpstormConfig = new \Zend_Config_Ini(
+                    $this->settings->jumpstormIniFile, null, array('allowModifications' => true)
+                );
+                $databaseConfig = $jumpstormConfig->common->db;
+                if (0 == strlen($databaseConfig->password)) {
+                    unset($databaseConfig->password);
+                }
+                $testDbNames = array($this->_testDbName, $this->_testDbName . '_test');
+                foreach ($testDbNames as $dbName) {
+                    $this->_dropTestDatabase($databaseConfig, $dbName);
+                }
+            } catch (\Exception $e) {
+                Logger::error($e->getMessage(), array(), false);
             }
-            $testDbNames = array($this->_testDbName, $this->_testDbName . '_test');
-            foreach ($testDbNames as $dbName) {
-                $this->_dropTestDatabase($databaseConfig, $dbName);
-            }
-        } catch (\Exception $e) {
-            Logger::error($e->getMessage(), array(), false);
         }
     }
 
@@ -353,6 +355,11 @@ class CodeCoverage extends Plugin implements JudgePlugin
      */
     protected function setupUnitTestEnvironment($extensionPath)
     {
+        /**
+         * getting the neccessary information like magento target from
+         * the jumpstorm configuration even jumpstorm is not used to set up
+         * the test environment
+         */
         if (!$this->settings->jumpstormIniFile) {
             throw new Exception("Required information missing in ini file: plugins.CodeCoverage.jumpstormIniFile");
         }
