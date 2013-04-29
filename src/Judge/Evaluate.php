@@ -39,6 +39,7 @@ class Evaluate extends Command
         $this->addOption('vendor',  'd', InputOption::VALUE_OPTIONAL, 'provide the vendor of the extension');
         $this->addOption('extension',  'e', InputOption::VALUE_OPTIONAL, 'provide the name of the extension');
         $this->addOption('ext_version',  's', InputOption::VALUE_OPTIONAL, 'provide the extension version');
+        $this->addOption('ext_identifier',  'i', InputOption::VALUE_OPTIONAL, 'unique identifier of the extension');
         $this->addOption('php-option', 'o', InputOption::VALUE_OPTIONAL, 'php options for child processes');
     }
 
@@ -163,22 +164,25 @@ class Evaluate extends Command
             Logger::setExtVendor($input->getOption('vendor'));
         } else {
             //read vendor from config
-            $vendor = XMLReader::getVendor();
-            Logger::setExtVendor($vendor);
+            Logger::setExtVendor(XMLReader::getVendor());
         }
         if ($input->getOption('extension')) {
             Logger::setExtName($input->getOption('extension'));
         } else {
             //read extension name from config
-            $extension = XMLReader::getExtensionName();
-            Logger::setExtName($extension);
+            Logger::setExtName(XMLReader::getExtensionName());
         }
         if ($input->getOption('ext_version')) {
             Logger::setExtVersion($input->getOption('ext_version'));
         } else {
             //read extension version from config
-            $version = XMLReader::getVersion();
-            Logger::setExtVersion($version);
+            Logger::setExtVersion(XMLReader::getVersion());
+        }
+        if ($input->getOption('ext_identifier')) {
+            Logger::setExtIdentifier($input->getOption('ext_identifier'));
+        } else {
+            //read extension identifier from config
+            Logger::setExtIdentifier(XMLReader::getExtensionIdentifier());
         }
     }
 

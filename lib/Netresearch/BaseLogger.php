@@ -32,6 +32,7 @@ class BaseLogger
     protected static $extVendor;
     protected static $extVersion;
     protected static $extName;
+    protected static $extIdentifier;
 
     protected static $results = array();
 
@@ -59,27 +60,37 @@ class BaseLogger
     {
         self::$extVersion = $extVersion;
     }
-    
+
     public static function setExtName($extName)
     {
         self::$extName = $extName;
+    }
+
+    public static function setExtIdentifier($extIdentifier)
+    {
+        self::$extIdentifier = $extIdentifier;
     }
     
     public static function getExtVendor()
     {
         return self::$extVendor;
     }
-    
+
     public static function getExtVersion()
     {
         return self::$extVersion;
     }
-    
+
     public static function getExtName()
     {
         return self::$extName;
     }
-    
+
+    public static function getExtIdentifier()
+    {
+        return self::$extIdentifier;
+    }
+
     protected static function writeln($message, array $args = array(), $type = null)
     {
         if (self::VERBOSITY_NONE === self::$verbosity) {

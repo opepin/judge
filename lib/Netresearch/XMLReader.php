@@ -8,10 +8,11 @@ namespace Netresearch;
  */
 class XMLReader
 {
-    protected static $vendor;
+    protected static $vendor = '';
     protected static $vendorNode;
-    protected static $extensionName;
-    protected static $version;
+    protected static $extensionName = '';
+    protected static $version = '';
+    protected static $extensionIdentifier = '';
     
     
     public static function getVendor()
@@ -28,8 +29,12 @@ class XMLReader
     {
         return self::$version;
     }
-    
-    
+
+    public static function getExtensionIdentifier()
+    {
+        return self::$extensionIdentifier;
+    }
+
     public static function readConfig($extensionPath)
     {
         // search config.xml file
@@ -56,6 +61,7 @@ class XMLReader
             }            
         }
         self::$version = (string)self::$vendorNode->version;
+        self::$extensionIdentifier = self::createExtensionIdentifier();
     }
     
     public static function searchConfig($extensionPath)
@@ -99,6 +105,15 @@ class XMLReader
     protected static function hasTrailingPathDelimiter($path)
     {
         return ($path[strlen($path) - 1] == '/') or ($path[strlen($path) - 1] == '\\');
+    }
+
+    protected static function createExtensionIdentifier()
+    {
+        $identifier = array(self::$vendor, self::$extensionName, self::$version);
+        array_walk($identifier, function (&$item) {
+            $item = strtolower(preg_replace('/[^A-Za-z0-9]/', '', $item));
+        });
+        return implode('_', $identifier);
     }
 }
 

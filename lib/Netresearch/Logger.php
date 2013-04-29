@@ -68,7 +68,7 @@ class Logger extends BaseLogger
         }
     }
     
-    private function printOnOutput($extension)
+    private static function printOnOutput($extension)
     {
         self::$output->writeln("Vendor: " . self::getExtVendor());
         self::$output->writeln("Extension: " . self::getExtName());
@@ -108,10 +108,11 @@ class Logger extends BaseLogger
     private static function sendToWebservice()
     {    
         $data = 'user=' . self::$user . '&pw=' . self::$password .
-                '&version=' . self::$extVersion . 
-                '&name=' . self::$extName .
-                '&vendor=' . self::$extVendor . 
-                '&results=' . json_encode(IssueHandler::getPreparedResults());
+                '&version=' . urlencode(self::$extVersion) .
+                '&name=' . urlencode(self::$extName) .
+                '&vendor=' . urlencode(self::$extVendor) .
+                '&identifier=' . urlencode(self::$extIdentifier) .
+                '&results=' . urlencode(json_encode(IssueHandler::getPreparedResults()));
         if (self::$token) {
             $data .= '&token=' . self::$token;
         }
