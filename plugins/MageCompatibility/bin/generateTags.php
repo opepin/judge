@@ -126,9 +126,8 @@ class Tagger
         if (method_exists('Mage', 'getEdition')) {
             $this->_edition = Mage::getEdition();
         } else {
-            preg_match('/^1\.(\d+)\./', $this->_version, $matches);
-            $majorRelease = $matches[1];
-            $this->_edition = ($majorRelease < 7) ? 'Community' : 'Enterprise';
+            $this->_edition = file_exists($this->_magentoDir . 'app/etc/enterprise.xml') ?
+                'Enterprise' : 'Community';
         }
     }
 
