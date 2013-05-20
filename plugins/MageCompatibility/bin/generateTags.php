@@ -126,7 +126,7 @@ class Tagger
         if (method_exists('Mage', 'getEdition')) {
             $this->_edition = Mage::getEdition();
         } else {
-            $this->_edition = file_exists($this->_magentoDir . 'app/etc/enterprise.xml') ?
+            $this->_edition = file_exists($this->_magentoDir . 'app/etc/modules/Enterprise_Enterprise.xml') ?
                 'Enterprise' : 'Community';
         }
     }
