@@ -3,154 +3,166 @@
  * Generate tag file for use with MageCompatibility plugin for Judge
  */
 
-if (2 != count($argv)) {
+if (count($argv) !== 2) {
     die('Please submit exactly one param: The path to the Magento root directory' . PHP_EOL);
 }
-$pathToMagentoBaseDir = $argv[1];
-if (substr($pathToMagentoBaseDir, -1) != '/') {
-    $pathToMagentoBaseDir .= '/';
+$magentoDir = $argv[1];
+if (substr($magentoDir, -1) !== '/') {
+    $magentoDir .= '/';
 }
-if (false === file_exists($pathToMagentoBaseDir . '/app/Mage.php')) {
+if (!file_exists($magentoDir . '/app/Mage.php')) {
     die('Are you sure, there is a Magento? Couldn\'t find Mage.php!' . PHP_EOL);
 }
 
-$tagger = new Tagger($pathToMagentoBaseDir);
+$tagger = new Tagger($magentoDir);
 $tagger->run();
 
 class Tagger
 {
-    protected $tagDir;
-    protected $pathToMagentoBaseDir;
-    protected $edition;
-    protected $version;
+    protected $_magentoDir;
+    protected $_tagFile;
+    protected $_edition;
+    protected $_version;
 
-    public function __construct($pathToMagentoBaseDir)
+    protected $_needed = array(
+        'function' => array(
+            'token_node' => T_FUNCTION,
+            'name_node'  => T_STRING,
+            'node_type' => 'f',
+            'steps_to_name' => 1,
+        ),
+        'class' => array(
+            'token_node' => T_CLASS,
+            'name_node'  => T_STRING,
+            'node_type' => 'c',
+            'steps_to_name' => 1,
+        ),
+        'define' => array(
+            'token_node' => T_STRING,
+            'name_node'  => T_CONSTANT_ENCAPSED_STRING,
+            'node_type' => 'd',
+            'steps_to_name' => 2,
+        ),
+        'interface' => array(
+            'token_node' => T_INTERFACE,
+            'name_node'  => T_STRING,
+            'node_type' => 'i',
+            'steps_to_name' => 1,
+        ),
+    );
+
+    /**
+     * @param string $magentoDir
+     */
+    public function __construct($magentoDir)
     {
-        $this->tagDir = dirname(__FILE__) . '/../var/tags/';
-        $this->pathToMagentoBaseDir = $pathToMagentoBaseDir;
-        $this->verifyMagento($pathToMagentoBaseDir);
+        $this->_magentoDir = $magentoDir;
+        $this->_verifyMagento();
+        $this->_tagFile = realpath(dirname(__FILE__) . '/../var/tags/')
+            . '/' . strtolower($this->_edition) . '-' . $this->_version . '.tags';
     }
 
-    protected function verifyMagento($pathToMagentoBaseDir)
-    {
-        include $pathToMagentoBaseDir . 'app/Mage.php';
-
-        $this->version = Mage::getVersion();
-        if (method_exists('Mage', 'getEdition')) {
-            $this->edition = Mage::getEdition();
-        } else {
-            preg_match('/^1\.(\d+)\./', $this->version, $matches);
-            $majorRelease = $matches[1];
-            $this->edition = ($majorRelease < 7) ? 'Community' : 'Enterprise';
-        }
-        echo 'Analyzing Magento ' . $this->version . ' (' . $this->edition . ' Edition)...' . PHP_EOL;
-    }
-
-    protected function getTagFileName()
-    {
-        return strtolower($this->edition) . '-' . $this->version . '.tags';
-    }
-
-    protected function getRawTagFilePath()
-    {
-        return $this->tagDir . $this->getTagFileName() . '.raw';
-    }
-
+    /**
+     * Run php-parser
+     */
     public function run()
     {
+        echo 'Analyzing Magento ' . $this->_version . ' (' . $this->_edition . ' Edition)...' . PHP_EOL;
         $command = sprintf(
-            'cd %s && ctags -R --languages=php --totals=yes --tag-relative=yes --PHP-kinds=+cidf-v -h ".ph" --fields=+n -f tags .',
-            $this->pathToMagentoBaseDir,
-            $this->pathToMagentoBaseDir,
-            $this->edition,
-            $this->version
+            'find %s -type f -name "*.ph*" -print 2>/dev/null',
+            $this->_magentoDir
         );
-
-        exec($command, $output);
-
-        rename($this->pathToMagentoBaseDir . 'tags', $this->getRawTagFilePath());
-
-        $rawTagFile = fopen($this->getRawTagFilePath(), 'r');
-        $tagFile = fopen($this->tagDir . $this->getTagFileName(), 'w');
-        $tagFileLineNumber = 0;
-        while ($line = fgets($rawTagFile)) {
-            ++$tagFileLineNumber;
-            if (0 == strlen(trim($line))) {
-                // skip empty lines
-                continue;
-            }
-            if ('!_T' == substr($line, 0,3)) {
-                // skip comment lines
-                continue;
-            }
-            $line = preg_replace('/\/\^(\W*)(\w)/', '/^$2', $line);
-            list($tag, $path, $codeLine, $type, $sourceLineNumber) = explode("\t", $line);
-
-            if ('j' == $type) {
-                // skip js
-                continue;
-            }
-
-            $strippedCodeLine = preg_replace('/".*"/U', '""', substr($codeLine, 0, strlen($codeLine)-1));
-            $strippedCodeLine = preg_replace('/\'.*\'/U', '\'\'', $strippedCodeLine);
-            if (substr_count($strippedCodeLine, '(') !== substr_count($strippedCodeLine, ')')) {
-                $codeLine = $this->getCompleteFunctionDefinition($path, $tag, $sourceLineNumber);
-            }
-
-            fputs($tagFile, trim(implode(
-                "\t",
-                array($tag, $path, $codeLine, $type, $sourceLineNumber)
-            )) . "\n");
-        }
-        fclose($rawTagFile);
-        unlink($this->getRawTagFilePath());
-    }
-
-    protected function getCompleteFunctionDefinition($path, $tag, $sourceLineNumber)
-    {
-        $sourceLineNumber = (int) trim(str_replace('line:', '', $sourceLineNumber));
-        $sourceFile = fopen($this->pathToMagentoBaseDir . $path, 'r');
-        $currentLineNumber = 0;
-        while(!feof($sourceFile))
-        {
-            ++$currentLineNumber;
-            $line = fgets($sourceFile);
-            if ($sourceLineNumber == $currentLineNumber) {
-                $functionDefinition = '/^' . str_replace("\n", '', $line);
-                $functionDefinition = '/^' . str_replace("\r", '', $functionDefinition);
-                $functionDefinition = '/^' . str_replace("\t", '', $functionDefinition);
-            }
-            if ($sourceLineNumber < $currentLineNumber) {
-                $line = $this->cleanupComments($line);
-                $bodyStartPos = strpos($line, '{');
-                if (false !== $bodyStartPos) {
-                    $line = substr($line, 0, $bodyStartPos);
+        exec($command, $files);
+        $tagFile = fopen($this->_tagFile, 'w');
+        foreach ($files as $file) {
+            $source = file_get_contents($file);
+            // tokenize php-source and remove all white spaces
+            $tokenized = array_values(array_filter(token_get_all($source), function($node) {
+                return !is_array($node) || $node[0] !== T_WHITESPACE;
+            }));
+            // split source code on lines
+            $source = explode("\n", $source);
+            foreach ($tokenized as $i => $node) {
+                // skip single character of tokens identifiers
+                if (!is_array($node)) {
+                    continue;
                 }
-                $functionDefinition .= ' ' . trim($line);
-                if (substr_count($line, '(') < substr_count($line, ')')) {
-                    $functionDefinition = trim($functionDefinition) . '$/;"';
+                foreach ($this->_needed as $type => $item) {
+                    // check if that node neede to be collected
+                    if ($node[0] !== $item['token_node'] || $node[1] !== $type) {
+                        continue;
+                    }
+                    $nameNode = $tokenized[$i + $item['steps_to_name']];
+                    if ($nameNode[0] !== $item['name_node']) {
+                        continue;
+                    }
+                    if ($node[1] === 'function') {
+                        $codeLine = $this->_functionDeclarationCodeLine($i, $tokenized, $source);
+                    } else {
+                        $codeLine = $source[$node[2] - 1];
+                    }
+                    $row = implode("\t", array(
+                        trim($nameNode[1], '\'"'),
+                        substr($file, strlen($this->_magentoDir)),
+                        '/^' . str_replace('/', '\/', trim($codeLine)) . '$/;"',
+                        $item['node_type'],
+                        'line:' . $node[2]
+                    ));
+                    fputs($tagFile, $row . "\n");
                     break;
                 }
             }
         }
-        fclose($sourceFile);
-
-        return $functionDefinition;
+        fclose($tagFile);
     }
 
-    protected function cleanupComments($line)
+    /**
+     * Define magento version and edition
+     */
+    protected function _verifyMagento()
     {
-        // skip comment lines
-        if ('/*' == substr(trim($line), 0, 2)
-            || '//' == substr(trim($line), 0, 2)
-            || '*' == substr(trim($line), 0, 1)
-            || '#' == substr(trim($line), 0, 1)
-        ) {
-            return '';
+        include $this->_magentoDir . 'app/Mage.php';
+        $this->_version = Mage::getVersion();
+        if (method_exists('Mage', 'getEdition')) {
+            $this->_edition = Mage::getEdition();
+        } else {
+            preg_match('/^1\.(\d+)\./', $this->_version, $matches);
+            $majorRelease = $matches[1];
+            $this->_edition = ($majorRelease < 7) ? 'Community' : 'Enterprise';
         }
-        $line = strstr($line, '#', $beforeNeedle=true);
-        $line = strstr($line, '//', $beforeNeedle=true);
-        $line = strstr($line, '/*', $beforeNeedle=true);
-        return trim($line);
+    }
+
+    /**
+     * Combine function declaration (if it was in several lines) in single string
+     * @param int $i index
+     * @param array $tokenized
+     * @param array $source array of code lines
+     * @return string
+     */
+    protected function _functionDeclarationCodeLine($i, &$tokenized, &$source) {
+        $j = $i + 1;
+        // declaration is ended
+        while (isset($tokenized[$j]) && $tokenized[$j] !== ')') {
+            $j++;
+        }
+        $j--;
+        // search for last declaration node
+        while (isset($tokenized[$j]) && !is_array($tokenized[$j])) {
+            $j--;
+        }
+        // concatenation all lines in one line
+        $codeLine = implode(' ', array_slice(
+            $source,
+            $tokenized[$i][2] - 1,
+            $tokenized[$j][2] - ($tokenized[$i][2] - 1)
+        ));
+        if (substr_count($codeLine, '(') > substr_count($codeLine, ')')) {
+            $codeLine .= ')';
+        }
+        $codeLine = str_replace(array("\n", "\r", "\t"), array('', '', ''), $codeLine);
+        // this cleaner came from previous parser
+        $codeLine = preg_replace('/".*"/U', '""', $codeLine);
+        $codeLine = preg_replace('/\'.*\'/U', '\'\'', $codeLine);
+        return $codeLine;
     }
 }
