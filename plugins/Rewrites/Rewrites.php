@@ -27,7 +27,6 @@ class Rewrites extends Plugin implements JudgePlugin
 
     public function execute($extensionPath)
     {
-        $score = 0;
         $this->_extensionPath = $extensionPath;
 
         $command = sprintf('find "%s" -name config.xml', $extensionPath);
@@ -44,36 +43,17 @@ class Rewrites extends Plugin implements JudgePlugin
             }
         }
 
-        if (count($this->rewrites) <= $this->settings->allowedRewrites->count) {
-            $score += $this->settings->allowedRewrites->good;
-        } elseif ($this->settings->maxRewrites->count < count($this->rewrites)) {
-            $score += $this->settings->maxRewrites->good;
-        } else {
-            $score += $this->settings->maxRewrites->bad;
-        }
         foreach ($this->rewrites as $rewrite) {
             list($type, $code) = explode('s:', $rewrite);
-            if ($this->isCritical($rewrite)) {
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->_pluginName,
-                                "type"      => 'critical_' . $type . '_rewrite',
-                                "comment"   => $code,
-                                "failed"    =>  true)));
-                
-                $score += $this->settings->critical->bad;
-            } else {
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->_pluginName,
-                                "type"      => $type . '_rewrite',
-                                "comment"   => $code,
-                                "failed"    =>  true)));
-            }
+            $typePrefix = $this->isCritical($rewrite) ? 'critical_' : '';
+                IssueHandler::addIssue(new Issue( array( 
+                    "extension" =>  $extensionPath,
+                    "checkname" => $this->_pluginName,
+                    "type"      => $typePrefix . $type . '_rewrite',
+                    "comment"   => $code,
+                    "failed"    =>  true
+                )));
         }
-
-        Logger::setScore($extensionPath, $this->_pluginName, $score);
-        return $score;
     }
 
     protected function findRewrites($configFile, $type)

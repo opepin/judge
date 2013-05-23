@@ -28,18 +28,15 @@ class CheckComments extends Plugin implements JudgePlugin
     /**
      *
      * @param string $extensionPath the path to the extension to check
-     * @return float the score for the extension for this test
      */
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
-        $score = $this->settings->good;
         $lowerBoundary = $this->settings->lowerBoundary;
         $upperBoundary = $this->settings->upperBoundary;
         $clocToNclocRatio = $this->getClocToNclocRatio($extensionPath);
         
         $failed = ($clocToNclocRatio <= $lowerBoundary || $clocToNclocRatio >= $upperBoundary);
-        $score = $failed ? $this->settings->bad : $this->settings->good;
         IssueHandler::addIssue(new Issue(
             array('extension' => $extensionPath ,
                   'checkname' => $this->_pluginName,
@@ -52,7 +49,6 @@ class CheckComments extends Plugin implements JudgePlugin
 
         $unfinishedCodeToNclocRatio = $this->getUnfinishedCodeToNclocRatio($extensionPath);
         $failed = $this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio;
-        $score = $failed ? $this->settings->bad : $this->settings->good;
         IssueHandler::addIssue(new Issue(
             array('extension' => $extensionPath ,
                 'checkname' => $this->_pluginName,
@@ -62,8 +58,6 @@ class CheckComments extends Plugin implements JudgePlugin
             )
         ));
 
-        Logger::setScore($extensionPath, $this->_pluginName, $score);
-        return $score;
     }
 
     /**

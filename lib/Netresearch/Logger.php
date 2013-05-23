@@ -74,35 +74,15 @@ class Logger extends BaseLogger
         self::$output->writeln("Extension: " . self::getExtName());
         self::$output->writeln("Version: " . self::getExtVersion());
         
-        foreach (self::getFailedChecks($extension) as $failedCheck) {
-            self::error('<comment>"%s" failed check "%s"</comment>', array($extension, $failedCheck), false);
-
-            if (array_key_exists('issues', IssueHandler::$results[$extension][$failedCheck])) {
-                foreach (IssueHandler::$results[$extension][$failedCheck]['issues'] as $issue) {
+        $results = IssueHandler::getResults($extension);
+        foreach($results as $check => $entries) {
+            self::$output->writeln('Extensions ' . $extension . ' were evaluated by check ' . $check);
+            if(count($entries['issues']) > 0) {
+                foreach($entries['issues'] as $issue) {
                     self::$output->writeln('* ' . $issue->getType() . ': ' . $issue->getComment());
                 }
             }
         }
-        foreach (self::getPassedChecks($extension) as $passedCheck) {
-            self::log('"%s" passed check "%s"', array($extension, $passedCheck));
-            
-            if (array_key_exists($passedCheck, IssueHandler::$results[$extension]) &&
-                    array_key_exists('issues', IssueHandler::$results[$extension][$passedCheck])) {
-                foreach (IssueHandler::$results[$extension][$passedCheck]['issues'] as $issue) {
-                    self::$output->writeln('* ' . $issue->getType() . ': ' . $issue->getComment());
-                }
-            }
-        }
-        $score = self::getScore($extension);
-        if (0 < $score) {
-            $message = sprintf('<info>Extension "%s" succeeded in evaluation: %d</info>', $extension, $score);
-        } elseif (0 == $score) {
-            $message = sprintf('<comment>Result of "%s" evaluation: %d</comment>', $extension, $score);
-        } else {
-            $message = sprintf('<error>Extension "%s" failed evaluation: %d</error>', $extension, $score);
-        }
-        self::$output->writeln($message);
-        
     }
     
     private static function sendToWebservice()

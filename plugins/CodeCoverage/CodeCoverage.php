@@ -54,7 +54,6 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * Execute the CodeCoverage plugin (entry point)
      *
      * @param string $extensionPath The path to the extension to check
-     * @return float The test result (score)
      * @throws \Exception
      */
     public function execute($extensionPath)
@@ -67,38 +66,29 @@ class CodeCoverage extends Plugin implements JudgePlugin
 
         // scan for phpunit configuration
         $this->moduleNames = XmlReader::getModuleNames($extensionPath);
-        if (empty($this->moduleNames)) {
-            $score = $this->settings->bad;
-            return $score;
+        if (!empty($this->moduleNames)) {
+            try {
+                $this->setupUnitTestEnvironment($extensionPath);
+            } catch (\Exception $e) {
+                $this->setUnfinishedIssue();
+                $this->_cleanTestEnvironment();
+                Logger::log(implode(PHP_EOL, $e->getMessage()));
+                Logger::error('Magento installation failed', array(), false);
+                return ;
+            }
+
+            $this->evaluateTestCoverage($extensionPath);
         }
-
-        try {
-            $this->setupUnitTestEnvironment($extensionPath);
-        } catch (\Exception $e) {
-            $this->setUnfinishedIssue();
-            $this->_cleanTestEnvironment();
-            Logger::log(implode(PHP_EOL, $e->getMessage()));
-            Logger::error('Magento installation failed', array(), false);
-            return $this->settings->unfinished;
-        }
-
-
-        $score = $this->evaluateTestCoverage($extensionPath);
-        Logger::setScore($extensionPath, $this->_pluginName, $score);
-        return $score;
     }
 
     /**
      *
-     * calculates test coverage and find classes which are not covered
-     * by any test
+     * calculates test coverage and find classes which are not covered by any test
      *
      * @param string $extensionPath
-     * @return float the score for test coverage
      */
     protected function evaluateTestCoverage($extensionPath)
     {
-        $score = $this->settings->good;
         $executable = realpath('vendor/bin/phpunit');
         $phpUnitCoverageFile = $this->magentoTarget . '/codecoverage' . (string) $this->config->token . '.xml';
 
@@ -129,12 +119,12 @@ class CodeCoverage extends Plugin implements JudgePlugin
                 unlink($phpUnitCoverageFile);
             }
             $this->_cleanTestEnvironment();
-            return $this->settings->unfinished;
+            return ;
         }
         if (!file_exists($phpUnitCoverageFile) || !file_exists($pdependSummaryFile)) {
             $this->setUnfinishedIssue();
             $this->_cleanTestEnvironment();
-            return $this->settings->unfinished;
+            return ;
         }
 
         $phpUnitXpaths = array();
@@ -151,9 +141,6 @@ class CodeCoverage extends Plugin implements JudgePlugin
                                 "type"      => $codeCoverageType,
                                 "comment"   => $codeCoverages[$codeCoverageType],
                                 "failed"    =>  true)));
-            if ($codeCoverages[$codeCoverageType] < $codeCoverageSettings[$codeCoverageType]) {
-                    $score = $this->settings->bad;
-                }
             }
         }
 
@@ -169,9 +156,6 @@ class CodeCoverage extends Plugin implements JudgePlugin
         $notCoveredClasses = array_diff($pdependClasses, $phpUnitClasses);
 
         if (0 < sizeof($notCoveredClasses)) {
-            if ($this->settings->allowedNotCoveredClasses < sizeof($notCoveredClasses)) {
-                $score = $this->settings->bad;
-            }
             foreach ($notCoveredClasses as $notCoveredClass) {
                 IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
@@ -184,7 +168,6 @@ class CodeCoverage extends Plugin implements JudgePlugin
         unlink($pdependSummaryFile);
         unlink($phpUnitCoverageFile);
         $this->_cleanTestEnvironment();
-        return $score;
     }
 
     /**

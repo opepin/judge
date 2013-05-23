@@ -29,12 +29,10 @@ class CheckStyle extends Plugin implements JudgePlugin
     /**
      *
      * @param string $extensionPath the path to the extension to check
-     * @return float the score for the extension for this test
      */
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
-        $score = $this->settings->good;
 
         $params = array(
             'ignore' => '*/jquery*',
@@ -50,14 +48,11 @@ class CheckStyle extends Plugin implements JudgePlugin
         $csResults = $this->getClearedResults($csResults);
         // more issues found than allowed -> log them
         if ($this->settings->allowedIssues < sizeof($csResults)) {
-            $score = $this->settings->bad;
             foreach ($csResults as $issue) {
                 $this->addToUniqueIssues($issue);
             }
             $this->logUniqueIssues();
         }
-        Logger::setScore($extensionPath, $this->_pluginName, $score);
-        return $score;
     }
 
     /**

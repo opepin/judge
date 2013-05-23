@@ -28,13 +28,11 @@ class PerformanceCheck implements JudgePlugin
     /**
      *
      * @param string $extensionPath path to the extension to evaluate
-     * @return float the score for this test
      */
     public function execute($extensionPath)
     {
         $this->extensionPath = $extensionPath;
         $settings = $this->config->plugins->{$this->name};
-        $score = $settings->good;
         $possiblePerformanceKillers = $this->scanForPerformanceLeaks($extensionPath);
 
         if (0 < sizeof($possiblePerformanceKillers)) {
@@ -49,11 +47,6 @@ class PerformanceCheck implements JudgePlugin
                                 "failed"    =>  true)));
             }
         }
-        if ($this->settings->allowedPerformanceIssues < sizeof($possiblePerformanceKillers)) {
-            $score = $this->settings->bad;
-        }
-        Logger::setScore($extensionPath, $this->name, $score);
-        return $score;
     }
 
 

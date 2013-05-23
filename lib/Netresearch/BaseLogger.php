@@ -182,19 +182,6 @@ class BaseLogger
         self::$results[$extension][$check]['comments'][] = $comment;
     }
 
-    public static function setScore($extension, $check, $score)
-    {
-        if (false == array_key_exists($extension, self::$results)) {
-            self::$results[$extension] = array();
-        }
-        if (false == array_key_exists($check, self::$results[$extension])) {
-            self::$results[$extension][$check] = array();
-        }
-        $result = self::$results[$extension][$check];
-        self::$results[$extension][$check]['result'] = $score;
-        self::$results[$extension][$check]['failed'] = $score < array_sum($result['range'])/2;
-    }
-
     /**
      * set a result value
      *
@@ -216,15 +203,6 @@ class BaseLogger
             self::$results[$extension][$check]['resultValue'] = array();
         }
         self::$results[$extension][$check]['resultValue'][$name] = $value;
-    }
-
-    public static function getScore($extension)
-    {
-        $score = 0;
-        foreach (self::$results[$extension] as $result) {
-            $score += $result['result'];
-        }
-        return $score;
     }
 
     public static function getFailedChecks($extension)
@@ -258,7 +236,6 @@ class BaseLogger
         $passedChecks = array();
         foreach (self::getPassedChecks($extension) as $check) {
             $passedChecks[$check] = array(
-                'score'    => self::$results[$extension][$check]['result'],
                 'comments' => array()
             );
             if (array_key_exists('comments', self::$results[$extension][$check])) {
@@ -268,7 +245,6 @@ class BaseLogger
         $failedChecks = array();
         foreach (self::getFailedChecks($extension) as $check) {
             $failedChecks[$check] = array(
-                'score'    => self::$results[$extension][$check]['result'],
                 'comments' => array()
             );
             if (array_key_exists('comments', self::$results[$extension][$check])) {
@@ -279,7 +255,6 @@ class BaseLogger
         return array(
             'passedChecks' => $passedChecks,
             'failedChecks' => $failedChecks,
-            'score'        => self::getScore($extension)
         );
     }
 

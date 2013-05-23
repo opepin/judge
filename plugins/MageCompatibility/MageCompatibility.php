@@ -35,7 +35,7 @@ class MageCompatibility extends Plugin implements JudgePlugin
             $extension = new Extension($this->_extensionPath);
             $methods = $extension->getUsedMagentoMethods();
             $classes = $extension->getUsedMagentoClasses();
-
+            
             IssueHandler::addIssue(new Issue(
                     array(  "extension" =>  $extensionPath,
                             "checkname" => $this->_pluginName,
@@ -137,24 +137,21 @@ class MageCompatibility extends Plugin implements JudgePlugin
                 }
             }
             if ($this->containsNoLatestVersion(array_keys($incompatibleVersions), 'CE')) {
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension" => $extensionPath ,"checkname" => $this->_pluginName,
-                                "type"      => 'mage_compatibility',
-                                "comment"   => sprintf('Extension supports Magento at least from CE version %s and EE version %s',
-                                 $this->settings->min->ce, $this->settings->min->ee),
-                                "failed"    =>  false)));
-
-
-                Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $this->settings->good);
-                return $this->settings->good;
+                IssueHandler::addIssue(new Issue( array(
+                    "extension" => $extensionPath ,"checkname" => $this->_pluginName,
+                    "type"      => 'mage_compatibility',
+                    "comment"   => sprintf('Extension supports Magento at least from CE version %s and EE version %s',
+                     $this->settings->min->ce, $this->settings->min->ee),
+                    "failed"    =>  false
+                )));
+                return ;
             }
         } catch (\Exception $e) {
             $this->setUnfinishedIssue();
-            Logger::error(implode(PHP_EOL, $e->getMessage()), array(), false);
-            return $this->settings->unfinished;
+            $message = is_array($e->getMessage()) ? $e->getMessage() : array($e->getMessage());
+            Logger::error(implode(PHP_EOL, $message), array(), false);
+            return ;
         }
-        Logger::setScore($extensionPath, current(explode('\\', __CLASS__)), $this->settings->bad);
-        return $this->settings->bad;
     }
 
     protected function getTagFileNames()

@@ -24,23 +24,12 @@ class CodeRuin extends Plugin implements JudgePlugin
     /**
      *
      * @param string $extensionPath the path to the extension to check
-     * @return float the score for the extension for this test
      */
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
-        $score = 0;
-
-        $score += ($this->extensionContainsTokens($extensionPath, $this->settings->criticals, 'critical'))
-            ? $this->settings->critical->bad
-            : $this->settings->critical->good;
-
-        $score += ($this->extensionContainsTokens($extensionPath, $this->settings->warnings, 'warning'))
-            ? (int) $this->settings->warning->bad
-            : $this->settings->warning->good;
-
-        Logger::setScore($extensionPath, $this->_pluginName, $score);
-        return $score;
+        $this->extensionContainsTokens($extensionPath, $this->settings->criticals, 'critical');
+        $this->extensionContainsTokens($extensionPath, $this->settings->warnings, 'warning');
     }
 
     protected function extensionContainsTokens($extensionPath, $tokens, $type)

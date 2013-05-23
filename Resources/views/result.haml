@@ -52,16 +52,6 @@
         .failed .title {
           background: #FF3322;
         }
-        .score {
-          font-style:  italic;
-          font-weight: bold;
-          margin-left: 0;
-          margin-top:  -22px;
-          padding:     3px;
-          position:    absolute;
-          text-align:  right;
-          width:       20px;
-        }
   %body
     #header
       %h1 Judge
@@ -71,12 +61,10 @@
         .check
           .passed
             %h3.title= $check
-            %div.score= 0
       - foreach ($failedChecks as $check=>$comments)
         .check
           .failed
             %h3.title= $check
-            %div.score= 0
             %div.comments
               - foreach ($comments['comment'] as $entry)
                 %div.comment= "<strong>Issue of type " . $entry['type'] . ": </strong>" . $entry['comment']

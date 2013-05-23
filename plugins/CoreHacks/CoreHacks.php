@@ -36,18 +36,15 @@ class CoreHacks extends Plugin implements JudgePlugin
             }
             $coreHackCount += count($output);
         }
-        if (0 == $coreHackCount) {
-            Logger::setScore($extensionPath, $this->_pluginName, $this->settings->good);
-            return $this->settings->good;
+        if ($coreHackCount != 0) {
+            IssueHandler::addIssue(new Issue( array(
+                "extension" =>  $this->extensionPath,
+                "checkname" =>  $this->_pluginName,
+                "type"      =>  "corehack",
+                "comment"   =>  "corehack found",
+                "failed"    =>  true))
+            );
         }
-        Logger::setScore($extensionPath, $this->_pluginName, $this->settings->bad);
-        IssueHandler::addIssue(new Issue(
-                array(  "extension" =>  $this->extensionPath,
-                        "checkname" =>  $this->_pluginName,
-                        "type"      =>  "corehack",
-                        "comment"   =>  "corehack found",
-                        "failed"    =>  true)));
-        return $this->settings->bad;
     }
 }
 

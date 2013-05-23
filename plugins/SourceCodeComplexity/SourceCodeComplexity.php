@@ -24,35 +24,23 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
     /**
      *
      * @param string $extensionPath the path to the extension to check
-     * @return float the sum of scores of all tests
      */
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
-        $score = 0;
-        if ($this->settings->phpDepend->enabled) {
-            $score = $score + $this->executePHPDepend($extensionPath);
-        }
-        if ($this->settings->phpcpd->enabled) {
-            $score = $score + $this->executePHPCpd($extensionPath);
-        }
-        if ($this->settings->phpMessDetector->enabled) {
-            $score = $score + $this->executePHPMessDetector($extensionPath);
-        }
-        Logger::setScore($extensionPath, $this->_pluginName, $score);
-        return $score;
+        $this->executePHPDepend($extensionPath);
+        $this->executePHPCpd($extensionPath);
+        $this->executePHPMessDetector($extensionPath);
     }
 
     /**
      * checks the extension with phpMessDetector and returns the scoring
      *
      * @param string $extensionPath extension to check
-     * @return float the scoring for the extension after php mess detector test
      */
     protected function executePHPMessDetector($extensionPath)
     {
         $this->setExecCommand('vendor/phpmd/phpmd/src/bin/phpmd');
-        $score = $this->settings->phpMessDetector->good;
         $params = array($extensionPath, 'text', $this->settings->phpMessDetector->useRuleSets);
         try {
             $mdResults = $this->_executePhpCommand($this->config, $params);
@@ -61,7 +49,6 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
         }
 
         if ($this->settings->phpMessDetector->allowedIssues < count($mdResults)) {
-            $score = $this->settings->phpMessDetector->bad;
             foreach ($mdResults as $issue) {
                 //prepare comment for db log
                 $comment = null;
@@ -90,14 +77,12 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
                                 "failed"        =>  true)));
             }
         }
-        return $score;
     }
 
     /**
      * checks the extensions complexity with phpDepend and returns the scoring
      *
      * @param string $extensionPath extension to check
-     * @return float the scoring for the extension after php depend test
      */
     protected function executePHPDepend($extensionPath)
     {
@@ -128,19 +113,13 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
                 ++ $metricViolations;
             }
         }
-        $score = $this->settings->phpDepend->metricViolations->good;
-        if ($this->settings->phpDepend->metricViolations->allowedMetricViolations < $metricViolations) {
-            $score = $score + $this->settings->phpDepend->metricViolations->bad;
-        }
         unlink($tempXml);
-        return $score;
     }
 
     /**
      *  checks the extension with php copy and paste detector
      *
      * @param string $extensionPath extension to check
-     * @return float the scoring for the extension after phpcpd test
      */
     protected function executePHPCpd($extensionPath)
     {
@@ -172,8 +151,6 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
                             "comment"   => $cpdPercentage,
                             "failed"        =>  true)));
             
-            return $this->settings->phpcpd->bad;
         }
-        return $this->settings->phpcpd->good;
     }
 }
