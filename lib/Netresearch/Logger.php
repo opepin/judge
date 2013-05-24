@@ -75,12 +75,20 @@ class Logger extends BaseLogger
         self::$output->writeln("Version: " . self::getExtVersion());
         
         $results = IssueHandler::getResults($extension);
-        foreach($results as $check => $entries) {
-            self::$output->writeln('Extensions ' . $extension . ' were evaluated by check ' . $check);
-            if(count($entries['issues']) > 0) {
-                foreach($entries['issues'] as $issue) {
-                    self::$output->writeln('* ' . $issue->getType() . ': ' . $issue->getComment());
+        
+        foreach($results as $checkName => $checkResult) {
+            $state = 'passed';
+            $issueComments = array();
+            if (is_array($checkResult['issues']) && count($checkResult['issues']) > 0) {
+                foreach ($checkResult['issues'] as $issue) {
+                    $issueComments[] = '* ' . $issue->getType() . ': ' . $issue->getComment();
+                    $state = $issue->getFailed() ? 'failed' : $state;
                 }
+            }
+            $message = 'Extensions ' . $extension . ' have ' . $state . ' the check ' . $checkName;
+            $state == 'passed' ? self::success($message) : self::error($message, array(), false);
+            foreach ($issueComments as $comment) {
+                self::$output->writeln($comment);
             }
         }
     }
