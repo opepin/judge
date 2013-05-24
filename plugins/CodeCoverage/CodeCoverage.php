@@ -4,8 +4,8 @@ namespace CodeCoverage;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use \dibi as dibi;
 use Netresearch\Plugin as Plugin;
+use \dibi as dibi;
 
 class CodeCoverage extends Plugin
 {

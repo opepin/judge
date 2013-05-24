@@ -30,11 +30,6 @@ class Klass extends Tag
         }
     }
 
-    protected function _getTableName()
-    {
-        return self::TABLE;
-    }
-
     /**
      * set class name
      * 

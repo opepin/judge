@@ -4,6 +4,7 @@ namespace PerformanceCheck;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
+use Netresearch\Plugin as Plugin;
 
 class PerformanceCheck extends Plugin
 {

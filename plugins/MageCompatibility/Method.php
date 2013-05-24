@@ -16,20 +16,13 @@ class Method extends Tag
     protected $_tagType      = 'method';
     protected $_table        = 'methods';
 
-    protected $_name;
     protected $_params=array();
-    protected $_context=array();
 
     public function __construct($name, $params, $context)
     {
         $this->setName($name);
         $this->setParams($params);
         $this->setContext($context);
-    }
-
-    protected function _getTableName()
-    {
-        return self::TABLE;
     }
 
     public function setName($name)
@@ -129,11 +122,6 @@ class Method extends Tag
     protected function _getContextArray($contextString)
     {
         return array();
-    }
-
-    public function getName()
-    {
-        return $this->_name;
     }
 
     public function getParams()

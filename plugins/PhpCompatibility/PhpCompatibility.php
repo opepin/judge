@@ -4,6 +4,7 @@ namespace PhpCompatibility;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
+use Netresearch\Plugin as Plugin;
 
 /**
  * check PHP compatibility

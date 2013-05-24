@@ -5,9 +5,16 @@ use Netresearch\Logger;
 
 use \dibi as dibi;
 
-class Tag
+abstract class Tag
 {
     protected $_config;
+
+    protected $_shortTagType;
+    protected $_tagType;
+    protected $_table;
+
+    protected $_name;
+    protected $_context = array();
 
     protected function _getFieldsToSelect()
     {
@@ -30,8 +37,8 @@ class Tag
             return $fixedVersions;
         }
         $query = 'SELECT ' . implode(', ', $this->_getFieldsToSelect()) . '
-            FROM [' . $this->table . '] t
-            INNER JOIN [' . $this->tagType . '_signature] ts ON (t.id = ts.' . $this->tagType . '_id)
+            FROM [' . $this->_table . '] t
+            INNER JOIN [' . $this->_tagType . '_signature] ts ON (t.id = ts.' . $this->_tagType . '_id)
             INNER JOIN [signatures] s ON (ts.signature_id = s.id)
             WHERE t.name = %s
             GROUP BY s.id'
@@ -60,7 +67,7 @@ class Tag
             }
         }
         if (false == is_array($signatureIds) || 0 == count($signatureIds)) {
-            Logger::warning('Could not find any matching definition of ' . $this->name);
+            Logger::warning('Could not find any matching definition of ' . $this->_name);
             return null;
         }
 
@@ -79,6 +86,11 @@ class Tag
         }
     }
 
+    public function getName()
+    {
+        return $this->_name;
+    }
+
     /**
      * Get fix Magento version list, if that tag is known as an exceptional case
      *
@@ -94,15 +106,15 @@ class Tag
         $fixedVersions = json_decode(file_get_contents(
             dirname(__FILE__) . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'fixedVersions.json'
         ));
-        foreach ($fixedVersions->{$this->table} as $candidate) {
+        foreach ($fixedVersions->{$this->_table} as $candidate) {
             if ($this->getName() == $candidate->name) {
-                if (array_key_exists('class', $this->context)
-                    && 0 < strlen($this->context['class'])
+                if (array_key_exists('class', $this->_context)
+                    && 0 < strlen($this->_context['class'])
                     && $candidate->classes
                 ) {
                     foreach ($candidate->classes as $class) {
                         $class = str_replace('*', '.*', $class);
-                        if (preg_match("/$class/", $this->context['class'])) {
+                        if (preg_match("/$class/", $this->_context['class'])) {
                             return $this->_getMagentoVersionsLike($candidate->versions);
                         }
                     }
