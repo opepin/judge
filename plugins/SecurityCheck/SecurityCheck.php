@@ -1,29 +1,14 @@
 <?php
 namespace SecurityCheck;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
-class SecurityCheck extends Plugin implements JudgePlugin
+class SecurityCheck extends Plugin
 {
-    protected $config;
-    protected $settings;
-    protected $results;
-
-    /**
-     *
-     * @param Config $config
-     */
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-    }
+    protected $_results;
 
     /**
      *
@@ -31,11 +16,10 @@ class SecurityCheck extends Plugin implements JudgePlugin
      */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
-        $settings = $this->config->plugins->{$this->_pluginName};
-        $this->checkForRequestParams($extensionPath);
-        $this->checkForEscaping($extensionPath);
-        $this->checkForSQLQueries($extensionPath);
+        parent::execute($extensionPath);
+        $this->_checkForRequestParams($extensionPath);
+        $this->_checkForEscaping($extensionPath);
+        $this->_checkForSQLQueries($extensionPath);
     }
 
 
@@ -44,14 +28,14 @@ class SecurityCheck extends Plugin implements JudgePlugin
      * @param string $extensionPath
      * @return int number of files containing direct usage of request params
      */
-    protected function checkForRequestParams($extensionPath)
+    protected function _checkForRequestParams($extensionPath)
     {
-        foreach ($this->settings->requestParamsPattern as $requestPattern) {
+        foreach ($this->_settings->requestParamsPattern as $requestPattern) {
             $command = 'grep -riEl "' . $requestPattern . '" ' . $extensionPath . '/app';
             try {
                 $filesWithThatToken = $this->_executeCommand($command);
             } catch (\Zend_Exception $e) {
-                return $this->settings->unfinished;
+                return;
             }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(
@@ -72,14 +56,14 @@ class SecurityCheck extends Plugin implements JudgePlugin
      *
      * @param string $extensionPath
      */
-    protected function checkForEscaping($extensionPath)
+    protected function _checkForEscaping($extensionPath)
     {
-        foreach ($this->settings->unescapedOutputPattern as $unescapedOutputPattern) {
+        foreach ($this->_settings->unescapedOutputPattern as $unescapedOutputPattern) {
             $command = 'grep -riEl "' . $unescapedOutputPattern . '" ' . $extensionPath . '/app';
             try {
                 $filesWithThatToken = $this->_executeCommand($command);
             } catch (\Zend_Exception $e) {
-                return $this->settings->unfinished;
+                return;
             }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(
@@ -99,14 +83,14 @@ class SecurityCheck extends Plugin implements JudgePlugin
      *
      * @param type $extensionPath
      */
-    protected function checkForSQLQueries($extensionPath)
+    protected function _checkForSQLQueries($extensionPath)
     {
-        foreach ($this->settings->sqlQueryPattern as $sqlQueryPattern) {
+        foreach ($this->_settings->sqlQueryPattern as $sqlQueryPattern) {
             $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $extensionPath . '/app';
             try {
                 $filesWithThatToken = $this->_executeCommand($command);
             } catch (\Zend_Exception $e) {
-                return $this->settings->unfinished;
+                return;
             }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(

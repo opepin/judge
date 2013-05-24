@@ -1,25 +1,14 @@
 <?php
 namespace SourceCodeComplexity;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
-class SourceCodeComplexity extends Plugin implements JudgePlugin
+class SourceCodeComplexity extends Plugin
 {
-    protected $config;
-    protected $settings;
-    protected $results;
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-    }
+    protected $_results;
 
     /**
      *
@@ -27,10 +16,10 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
      */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
-        $this->executePHPDepend($extensionPath);
-        $this->executePHPCpd($extensionPath);
-        $this->executePHPMessDetector($extensionPath);
+        parent::execute($extensionPath);
+        $this->_executePHPDepend($extensionPath);
+        $this->_executePHPCpd($extensionPath);
+        $this->_executePHPMessDetector($extensionPath);
     }
 
     /**
@@ -38,17 +27,17 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
      *
      * @param string $extensionPath extension to check
      */
-    protected function executePHPMessDetector($extensionPath)
+    protected function _executePHPMessDetector($extensionPath)
     {
         $this->setExecCommand('vendor/phpmd/phpmd/src/bin/phpmd');
-        $params = array($extensionPath, 'text', $this->settings->phpMessDetector->useRuleSets);
+        $params = array($extensionPath, 'text', $this->_settings->phpMessDetector->useRuleSets);
         try {
-            $mdResults = $this->_executePhpCommand($this->config, $params);
+            $mdResults = $this->_executePhpCommand($this->_config, $params);
         } catch (\Zend_Exception $e) {
-            return $this->settings->unfinished;
+            return;
         }
 
-        if ($this->settings->phpMessDetector->allowedIssues < count($mdResults)) {
+        if ($this->_settings->phpMessDetector->allowedIssues < count($mdResults)) {
             foreach ($mdResults as $issue) {
                 //prepare comment for db log
                 $comment = null;
@@ -84,25 +73,25 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
      *
      * @param string $extensionPath extension to check
      */
-    protected function executePHPDepend($extensionPath)
+    protected function _executePHPDepend($extensionPath)
     {
         $metricViolations = 0;
-        $tempXml = str_replace('.xml', (string) $this->config->token . '.xml', $this->settings->phpDepend->tmpXmlFilename);
-        $usedMetrics = $this->settings->phpDepend->useMetrics->toArray();
+        $tempXml = str_replace('.xml', (string) $this->_config->token . '.xml', $this->_settings->phpDepend->tmpXmlFilename);
+        $usedMetrics = $this->_settings->phpDepend->useMetrics->toArray();
         $this->setExecCommand('vendor/pdepend/pdepend/src/bin/pdepend');
         $params = array(
             'summary-xml' => $tempXml,
         );
         try {
-            $this->_executePhpCommand($this->config, $params);
+            $this->_executePhpCommand($this->_config, $params);
         } catch (\Zend_Exception $e) {
-            return $this->settings->unfinished;
+            return;
         }
         $metrics = current(simplexml_load_file($tempXml));
         Logger::setResultValue($extensionPath, $this->_pluginName, 'metrics', $metrics);
         foreach ($metrics as $metricName => $metricValue) {
             if (in_array($metricName, $usedMetrics)
-                && $this->settings->phpDepend->{$metricName} < $metricValue) {
+                && $this->_settings->phpDepend->{$metricName} < $metricValue) {
                 IssueHandler::addIssue(new Issue(
                         array(  "extension" =>  $extensionPath,
                                 "checkname" => $this->_pluginName,
@@ -121,10 +110,10 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
      *
      * @param string $extensionPath extension to check
      */
-    protected function executePHPCpd($extensionPath)
+    protected function _executePHPCpd($extensionPath)
     {
-        $minLines   = $this->settings->phpcpd->minLines;
-        $minTokens  = $this->settings->phpcpd->minTokens;
+        $minLines   = $this->_settings->phpcpd->minLines;
+        $minTokens  = $this->_settings->phpcpd->minTokens;
         $verbose = null;
         $suffixes = '';
         $exclude  = array();
@@ -143,7 +132,7 @@ class SourceCodeComplexity extends Plugin implements JudgePlugin
           $files, $minLines, $minTokens
         );
         $cpdPercentage = $clones->getPercentage();
-        if ($this->settings->phpcpd->percentageGood < $cpdPercentage) {
+        if ($this->_settings->phpcpd->percentageGood < $cpdPercentage) {
             IssueHandler::addIssue(new Issue(
                     array(  "extension" =>  $extensionPath,
                             "checkname" => $this->_pluginName,

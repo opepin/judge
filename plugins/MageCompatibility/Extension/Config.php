@@ -8,12 +8,12 @@ class Config
      *
      * @return array (class => tableName)
      */
-    protected function getTables($path)
+    protected function _getTables($path)
     {
         $tables = array();
-        $configFiles = $this->getConfigFilesWithTableDefinitions($path);
+        $configFiles = $this->_getConfigFilesWithTableDefinitions($path);
         foreach ($configFiles as $configFile) {
-            $tables = array_merge($tables, $this->getTablesForConfig($configFile));
+            $tables = array_merge($tables, $this->_getTablesForConfig($configFile));
         }
         return $tables;
     }
@@ -23,7 +23,7 @@ class Config
      *
      * @return array
      */
-    protected function getConfigFilesWithTableDefinitions($path)
+    protected function _getConfigFilesWithTableDefinitions($path)
     {
         $command = 'grep -rl -m1 --include "config.xml" "\<table>" ' . $path;
         exec($command, $configFiles);
@@ -35,7 +35,7 @@ class Config
      *
      * @return array (class => tableName)
      */
-    protected function getTablesForConfig($configFile)
+    protected function _getTablesForConfig($configFile)
     {
         $tables = array();
         $config = simplexml_load_file($configFile);

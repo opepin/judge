@@ -152,12 +152,12 @@ class BaseLogger
         self::comment($message, $args);
     }
 
-    public static function addCheck($extension, $check, $range)
+    public static function addCheck($extension, $check)
     {
-        if (false == array_key_exists($extension, self::$results)) {
+        if (!array_key_exists($extension, self::$results)) {
             self::$results[$extension] = array();
         }
-        self::$results[$extension][$check] = array('range' => $range);
+        self::$results[$extension][$check] = array();
     }
 
     public static function setComments($extension, $check, $comments)

@@ -7,9 +7,9 @@ use \dibi as dibi;
 
 class Tag
 {
-    protected $config;
+    protected $_config;
 
-    protected function getFieldsToSelect()
+    protected function _getFieldsToSelect()
     {
         return array(
             'ts.signature_id',
@@ -26,10 +26,10 @@ class Tag
      */
     public function getMagentoVersions()
     {
-        if ($fixedVersions = $this->getFixedVersions()) {
+        if ($fixedVersions = $this->_getFixedVersions()) {
             return $fixedVersions;
         }
-        $query = 'SELECT ' . implode(', ', $this->getFieldsToSelect()) . '
+        $query = 'SELECT ' . implode(', ', $this->_getFieldsToSelect()) . '
             FROM [' . $this->table . '] t
             INNER JOIN [' . $this->tagType . '_signature] ts ON (t.id = ts.' . $this->tagType . '_id)
             INNER JOIN [signatures] s ON (ts.signature_id = s.id)
@@ -50,7 +50,7 @@ class Tag
 
         /* get best matching signature id */
         if (1 < count($result)) {
-            $signatureIds = $this->getBestMatching($result->fetchAll());
+            $signatureIds = $this->_getBestMatching($result->fetchAll());
         } else {
             try {
                 $signatureIds = array_keys($result->fetchPairs());
@@ -84,7 +84,7 @@ class Tag
      *
      * @return array|null
      */
-    protected function getFixedVersions()
+    protected function _getFixedVersions()
     {
         /* since there are some tags being supported in Magento versions we already know
          * but not recognized correctly
@@ -103,17 +103,17 @@ class Tag
                     foreach ($candidate->classes as $class) {
                         $class = str_replace('*', '.*', $class);
                         if (preg_match("/$class/", $this->context['class'])) {
-                            return $this->getMagentoVersionsLike($candidate->versions);
+                            return $this->_getMagentoVersionsLike($candidate->versions);
                         }
                     }
                 } else {
-                    return $this->getMagentoVersionsLike($candidate->versions);
+                    return $this->_getMagentoVersionsLike($candidate->versions);
                 }
             }
         }
     }
 
-    protected function getMagentoVersionsLike($pattern)
+    protected function _getMagentoVersionsLike($pattern)
     {
         $pattern = str_replace("*", "%", $pattern);
 
@@ -135,10 +135,10 @@ class Tag
      * @param array $candidates Array of DibiRows
      * @return array
      */
-    protected function getBestMatching($candidates)
+    protected function _getBestMatching($candidates)
     {
-        $candidates = $this->filterByParamCount($candidates);
-        $candidates = $this->filterByContext($candidates);
+        $candidates = $this->_filterByParamCount($candidates);
+        $candidates = $this->_filterByContext($candidates);
         $signatureIds = array();
         foreach ($candidates as $candidate) {
             $signatureIds[] = $candidate->signature_id;
@@ -148,15 +148,15 @@ class Tag
 
     public function setConfig($config)
     {
-        $this->config = $config;
+        $this->_config = $config;
     }
 
-    protected function filterByParamCount($candidates)
+    protected function _filterByParamCount($candidates)
     {
         return $candidates;
     }
 
-    protected function filterByContext($candidates)
+    protected function _filterByContext($candidates)
     {
         return $candidates;
     }

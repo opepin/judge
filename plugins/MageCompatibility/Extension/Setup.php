@@ -6,7 +6,7 @@ use Netresearch\Logger;
 
 class Setup
 {
-    protected $changes=array(
+    protected $_changes=array(
         'add' => array()
     );
 
@@ -17,7 +17,7 @@ class Setup
         if (is_null($this->_conn)) {
             $this->_conn = new Setup\Connection();
         }
-        $code = $this->getNormalizedInstallerCode($file);
+        $code = $this->_getNormalizedInstallerCode($file);
         eval('namespace ' . __NAMESPACE__ . ';?>' . $code);
     }
 
@@ -27,7 +27,7 @@ class Setup
      * @param string $file Installer file name
      * @return string
      */
-    protected function getNormalizedInstallerCode($file)
+    protected function _getNormalizedInstallerCode($file)
     {
         $code = file_get_contents($file);
         /* replace direct instanciation */
@@ -48,12 +48,12 @@ class Setup
 
     public function run($queryClob)
     {
-        $this->evaluateQueries($queryClob);
+        $this->_evaluateQueries($queryClob);
     }
 
     public function getChanges()
     {
-        return array_merge($this->changes, $this->getConnection()->getChanges());
+        return array_merge($this->_changes, $this->getConnection()->getChanges());
     }
 
     /**
@@ -72,9 +72,9 @@ class Setup
         return $this->_conn;
     }
 
-    protected function evaluateQueries($queryClob)
+    protected function _evaluateQueries($queryClob)
     {
-        $queries = $this->getQueries($queryClob);
+        $queries = $this->_getQueries($queryClob);
         foreach ($queries as $query) {
             $query = trim($query);
             if (0 == strlen($query)) {
@@ -84,12 +84,12 @@ class Setup
             if (count($matches)) {
                 $tableName   = $matches[2];
                 $fieldDefinitions = explode(',', $matches[3]);
-                $this->addCreateTable($tableName, $fieldDefinitions);
+                $this->_addCreateTable($tableName, $fieldDefinitions);
             }
         }
     }
 
-    protected function addCreateTable($tableName, $fieldDefinitions)
+    protected function _addCreateTable($tableName, $fieldDefinitions)
     {
         foreach ($fieldDefinitions as $definition) {
             preg_match('/^`?([a-zA-Z0-9_]+)`? ([a-zA-Z]+)/ms', trim($definition), $nameMatches);
@@ -97,21 +97,21 @@ class Setup
                 $fieldName = $nameMatches[1];
                 $type = $nameMatches[2];
                 if ('KEY' !== $type) {
-                    $this->addField($tableName, $fieldName);
+                    $this->_addField($tableName, $fieldName);
                 }
             }
         }
     }
 
-    protected function addField($table, $field)
+    protected function _addField($table, $field)
     {
-        if (false == array_key_exists($table, $this->changes['add'])) {
-            $this->changes['add'][$table] = array();
+        if (false == array_key_exists($table, $this->_changes['add'])) {
+            $this->_changes['add'][$table] = array();
         }
-        $this->changes['add'][$table][] = $field;
+        $this->_changes['add'][$table][] = $field;
     }
 
-    protected function getQueries($rawQueries)
+    protected function _getQueries($rawQueries)
     {
         /* strip values to avoid wrong splitting if values contain ";" */
         $rawQueries = preg_replace('/".*"/U', '""', substr($rawQueries, 0, strlen($rawQueries)-1));

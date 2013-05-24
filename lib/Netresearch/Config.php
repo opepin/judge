@@ -8,22 +8,22 @@ class Config extends \Zend_Config_Ini
 {
     protected $_dbName;
 
-    protected $confirmedData = array();
+    protected $_confirmedData = array();
 
-    protected $output;
-    protected $command;
+    protected $_output;
+    protected $_command;
 
-    protected $addedPermissions;
-    protected $removedPermissions;
+    protected $_addedPermissions;
+    protected $_removedPermissions;
     
     public function setOutput(OutputInterface $output)
     {
-        $this->output = $output;
+        $this->_output = $output;
     }
     
     public function setCommand(Command $command)
     {
-        $this->command = $command;
+        $this->_command = $command;
     }
 
     /**
@@ -45,8 +45,8 @@ class Config extends \Zend_Config_Ini
 
     public function determine($path)
     {
-        if (array_key_exists($path, $this->confirmedData)) {
-            return $this->confirmedData[$path];
+        if (array_key_exists($path, $this->_confirmedData)) {
+            return $this->_confirmedData[$path];
         }
         $readablePath = ucwords(str_replace('.', ' ', $path));
         $steps = explode('.', $path);
@@ -57,9 +57,9 @@ class Config extends \Zend_Config_Ini
             $step = next($steps);
         }
         if (is_null($value) && $this->ask && in_array($path, $this->ask)) {
-            $dialog = $this->command->getHelperSet()->get('dialog');
+            $dialog = $this->_command->getHelperSet()->get('dialog');
             $value = $dialog->ask(
-                $this->output,
+                $this->_output,
                 sprintf('<question>%s?</question> ', $readablePath),
                 false
             );
@@ -70,9 +70,9 @@ class Config extends \Zend_Config_Ini
             $subConfig = $value;
         }
         if ($this->confirm && in_array($path, $this->confirm->toArray())) {
-            $dialog = $this->command->getHelperSet()->get('dialog');
+            $dialog = $this->_command->getHelperSet()->get('dialog');
             $confirmation = $dialog->askConfirmation(
-                $this->output,
+                $this->_output,
                 sprintf('<question>%s %s (y)?</question> ', $readablePath, $value),
                 true
             );
@@ -83,7 +83,7 @@ class Config extends \Zend_Config_Ini
                 ));
             }
         }
-        $this->confirmedData[$path] = $value;
+        $this->_confirmedData[$path] = $value;
         return $value;
     }
     
@@ -204,17 +204,17 @@ class Config extends \Zend_Config_Ini
         return $this->magento->adminPass;
     }
 
-    protected function assignPermissions()
+    protected function _assignPermissions()
     {
-        $this->addedPermissions   = array();
-        $this->removedPermissions = array();
+        $this->_addedPermissions   = array();
+        $this->_removedPermissions = array();
 
         if (isset($this->permissions)) {
             foreach ($this->permissions as $permission=>$allowed) {
                 if (1 == $allowed) {
-                    $this->addedPermissions[] = $permission;
+                    $this->_addedPermissions[] = $permission;
                 } elseif (0 == $allowed) {
-                    $this->removedPermissions[] = $permission;
+                    $this->_removedPermissions[] = $permission;
                 } else {
                     throw new Exception(sprintf('invalid value %s for permission %s in jumpstorm.ini!', $allowed, $permission));
                 }
@@ -224,18 +224,18 @@ class Config extends \Zend_Config_Ini
 
     public function getRemovedPermissions()
     {
-        if (is_null($this->removedPermissions)) {
-            $this->assignPermissions();
+        if (is_null($this->_removedPermissions)) {
+            $this->_assignPermissions();
         }
-        return $this->removedPermissions;
+        return $this->_removedPermissions;
     }
 
     public function getAddedPermissions()
     {
-        if (is_null($this->addedPermissions)) {
-            $this->assignPermissions();
+        if (is_null($this->_addedPermissions)) {
+            $this->_assignPermissions();
         }
-        return $this->addedPermissions;
+        return $this->_addedPermissions;
     }
 
     public function getPlugins()

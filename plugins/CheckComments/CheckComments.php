@@ -5,23 +5,18 @@ use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
-class CheckComments extends Plugin implements JudgePlugin
+class CheckComments extends Plugin
 {
-    protected $config;
-    protected $settings;
-    protected $ncloc = 0;
-    protected $cloc = 0;
+    protected $_ncloc = 0;
+    protected $_cloc = 0;
 
 
 
     public function __construct(Config $config)
     {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
+        parent::__construct($config);
         $this->_execCommand = 'vendor/pdepend/pdepend/src/bin/pdepend';
     }
 
@@ -31,10 +26,10 @@ class CheckComments extends Plugin implements JudgePlugin
      */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
-        $lowerBoundary = $this->settings->lowerBoundary;
-        $upperBoundary = $this->settings->upperBoundary;
-        $clocToNclocRatio = $this->getClocToNclocRatio($extensionPath);
+        parent::execute($extensionPath);
+        $lowerBoundary = $this->_settings->lowerBoundary;
+        $upperBoundary = $this->_settings->upperBoundary;
+        $clocToNclocRatio = $this->_getClocToNclocRatio($extensionPath);
         
         $failed = ($clocToNclocRatio <= $lowerBoundary || $clocToNclocRatio >= $upperBoundary);
         IssueHandler::addIssue(new Issue(
@@ -47,8 +42,8 @@ class CheckComments extends Plugin implements JudgePlugin
         ));
 
 
-        $unfinishedCodeToNclocRatio = $this->getUnfinishedCodeToNclocRatio($extensionPath);
-        $failed = $this->settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio;
+        $unfinishedCodeToNclocRatio = $this->_getUnfinishedCodeToNclocRatio($extensionPath);
+        $failed = $this->_settings->allowedUnfinishedCodeToNclocRatio < $unfinishedCodeToNclocRatio;
         IssueHandler::addIssue(new Issue(
             array('extension' => $extensionPath ,
                 'checkname' => $this->_pluginName,
@@ -68,21 +63,21 @@ class CheckComments extends Plugin implements JudgePlugin
      * @return float
      * @throws Exception if the ratio cannot be calculated
      */
-    protected function getClocToNclocRatio($extensionPath)
+    protected function _getClocToNclocRatio($extensionPath)
     {
         $ncloc = 0;
         $cloc = 0;
-        $metrics = $this->getMetrics($extensionPath);
-        $this->ncloc = $metrics['ncloc'];
-        $this->cloc = $metrics['cloc'];
+        $metrics = $this->_getMetrics($extensionPath);
+        $this->_ncloc = $metrics['ncloc'];
+        $this->_cloc = $metrics['cloc'];
         if ((!is_numeric($ncloc) || !is_numeric($cloc)) && $ncloc <= 0) {
             throw new Exception('Number of code lines is not numeric or 0? Please check extension path!');
         }
-        return $this->cloc / $this->ncloc;
+        return $this->_cloc / $this->_ncloc;
     }
 
 
-    protected function getUnfinishedCodeToNclocRatio($extensionPath)
+    protected function _getUnfinishedCodeToNclocRatio($extensionPath)
     {
         $unfinishedCode = 0;
         $precalculatedResults = Logger::getResults($extensionPath, 'CodeRuin');
@@ -92,7 +87,7 @@ class CheckComments extends Plugin implements JudgePlugin
                 $unfinishedCode += $value;
             }
         }
-        return $unfinishedCode / $this->ncloc;
+        return $unfinishedCode / $this->_ncloc;
     }
 
 
@@ -103,7 +98,7 @@ class CheckComments extends Plugin implements JudgePlugin
      * @param $extensionPath the extension path
      * @return array an array containning the *locs
      */
-    protected function getMetrics($extensionPath)
+    protected function _getMetrics($extensionPath)
     {
         $metrics = array();
         $precalculatedResults = Logger::getResults($extensionPath, 'SourceCodeComplexity');
@@ -116,15 +111,15 @@ class CheckComments extends Plugin implements JudgePlugin
             $metrics = $precalculatedResults['resultValue']['metrics'];
         }
         if (0 == count($metrics)) {
-            $tempXml = str_replace('.xml', (string) $this->config->token . '.xml', $this->settings->tmpXmlFilename);
+            $tempXml = str_replace('.xml', (string) $this->_config->token . '.xml', $this->_settings->tmpXmlFilename);
             $params = array(
                 'summary-xml' => $tempXml
             );
 
             try {
-                $this->_executePhpCommand($this->config, $params);
+                $this->_executePhpCommand($this->_config, $params);
             } catch (\Zend_Exception $e) {
-                return $this->settings->unfinished;
+                return;
             }
             $metrics = current(simplexml_load_file($tempXml));
             unlink($tempXml);

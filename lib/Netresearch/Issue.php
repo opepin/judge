@@ -3,13 +3,13 @@ namespace Netresearch;
 
 class Issue
 {
-    protected $extension;
-    protected $checkname;
-    protected $type;
-    protected $failed;
-    protected $comment;
-    protected $linenumber;
-    protected $files = array();
+    protected $_extension;
+    protected $_checkname;
+    protected $_type;
+    protected $_failed;
+    protected $_comment;
+    protected $_linenumber;
+    protected $_files = array();
     
 //    public $data = array();
 //    protected $allowedAttributes = array("checkname", "type", "comment");
@@ -26,25 +26,25 @@ class Issue
     
     public function setExtension($extension)
     {
-        $this->extension = $extension;
+        $this->_extension = $extension;
         return $this;
     }
     
     public function setCheckname($checkname)
     {
-        $this->checkname = $checkname;
+        $this->_checkname = $checkname;
         return $this;
     }
     
     public function setType($type)
     {
-        $this->type = $type;
+        $this->_type = $type;
         return $this;
     }
     
     public function setComment($comment)
     {
-        $this->comment = ltrim(str_replace($this->extension, '', $comment), DIRECTORY_SEPARATOR);
+        $this->_comment = ltrim(str_replace($this->_extension, '', $comment), DIRECTORY_SEPARATOR);
         return $this;
     }
     
@@ -52,58 +52,58 @@ class Issue
     {
         if (!empty($files)) {
             foreach ($files as $key => $file) {
-                $files[$key] = ltrim(str_replace($this->extension, '', $file), DIRECTORY_SEPARATOR);
+                $files[$key] = ltrim(str_replace($this->_extension, '', $file), DIRECTORY_SEPARATOR);
             }
         }
-        $this->files = $files;
+        $this->_files = $files;
         return $this;
     }
     
     public function setLinenumber($linenumber)
     {
-        $this->linenumber = $linenumber;
+        $this->_linenumber = $linenumber;
         return $this;
     }
     
     public function setFailed($failed)
     {
-        $this->failed = $failed;
+        $this->_failed = $failed;
         return $this;
     }
     
     public function getExtension()
     {
-        return $this->extension;
+        return $this->_extension;
     }
     
     public function getCheckname()
     {
-        return $this->checkname;
+        return $this->_checkname;
     }
     
     public function getType()
     {
-        return $this->type;
+        return $this->_type;
     }
     
     public function getComment()
     {
-        return $this->comment;
+        return $this->_comment;
     }
     
     public function getFiles()
     {
-        return $this->files;
+        return $this->_files;
     }
     
     public function getLinenumber()
     {
-        return $this->linenumber;
+        return $this->_linenumber;
     }
     
     public function getFailed()
     {
-        return $this->failed;
+        return $this->_failed;
     }
     
     public function getJsonData()

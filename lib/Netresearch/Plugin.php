@@ -7,12 +7,53 @@ use Netresearch\IssueHandler;
 /**
  * Base class for plugins
  */
-class Plugin
+abstract class Plugin implements PluginInterface
 {
     protected $_phpBin;
     protected $_execCommand;
+
+    /**
+     * Plugin name, same as check class name
+     * @var string
+     */
     protected $_pluginName;
+
+    /**
+     * Path to extension source
+     * @var string
+     */
     protected $_extensionPath;
+
+    /**
+     * The global Judge configuration
+     * @var Config
+     */
+    protected $_config;
+    /**
+     * The local plugin configuration
+     * @var Config
+     */
+    protected $_settings;
+
+    /**
+     * Base constructor for all plugins
+     * @param Config $config
+     */
+    public function __construct(Config $config)
+    {
+        $this->_config = $config;
+        $this->_pluginName = current(explode('\\', get_class($this)));
+        $this->_settings = $this->_config->plugins->{$this->_pluginName};
+    }
+
+    /**
+     * @param $extensionPath
+     */
+    public function execute($extensionPath)
+    {
+        $this->_extensionPath = $extensionPath;
+    }
+
 
     /**
      * @param Config $config
@@ -55,7 +96,7 @@ class Plugin
 
         if ($status == 255) {
             $this->setUnfinishedIssue();
-            throw new \Exception('Failed to execute ' . $this->_pluginName .' plugin.');
+            throw new \Zend_Exception('Failed to execute ' . $this->_pluginName .' plugin.');
         }
 
         return $response;

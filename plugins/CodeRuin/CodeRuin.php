@@ -1,49 +1,34 @@
 <?php
 namespace CodeRuin;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
-class CodeRuin extends Plugin implements JudgePlugin
+class CodeRuin extends Plugin
 {
-    protected $config;
-    protected $settings;
-    protected $results;
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-    }
-
     /**
      *
      * @param string $extensionPath the path to the extension to check
      */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
-        $this->extensionContainsTokens($extensionPath, $this->settings->criticals, 'critical');
-        $this->extensionContainsTokens($extensionPath, $this->settings->warnings, 'warning');
+        parent::execute($extensionPath);
+        $this->_extensionContainsTokens($extensionPath, $this->_settings->criticals, 'critical');
+        $this->_extensionContainsTokens($extensionPath, $this->_settings->warnings, 'warning');
     }
 
-    protected function extensionContainsTokens($extensionPath, $tokens, $type)
+    protected function _extensionContainsTokens($extensionPath, $tokens, $type)
     {
-        $found = 0;
         foreach ($tokens as $token) {
             $command = 'grep -riEl "' . $token . '" ' . $extensionPath . '/app';
             try {
                 $filesWithThatToken = $this->_executeCommand($command);
             } catch (\Zend_Exception $e) {
-                return $this->settings->unfinished;
+                return;
             }
-            $count = count($filesWithThatToken);
-            if ($count) {
+            if (count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(
                     array('extension' =>  $extensionPath,
                           'checkname' => $this->_pluginName,
@@ -53,10 +38,8 @@ class CodeRuin extends Plugin implements JudgePlugin
                           'failed'    =>  true
                     )
                 ));
-                $found += $count;
             }
         }
-        return (0 < $found);
     }
 }
 

@@ -1,31 +1,20 @@
 <?php
 namespace PhpCompatibility;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 
 /**
  * check PHP compatibility
  */
-class PhpCompatibility implements JudgePlugin
+class PhpCompatibility extends Plugin
 {
-    protected $config;
-    protected $extensionPath;
-    protected $rewrites=array();
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->name   = current(explode('\\', __CLASS__));
-    }
+    protected $_rewrites=array();
 
     public function execute($extensionPath)
     {
-        $settings = $this->config->plugins->{$this->name};
-        $this->extensionPath = $extensionPath;
+        parent::execute($extensionPath);
 
         $options = array(
             'recursive' => true,
@@ -44,8 +33,8 @@ class PhpCompatibility implements JudgePlugin
             $allResultsAtOnce = $phpci->toArray();
             foreach ($phpci->toArray() as $file => $result) {
                 if ($file == 'versions') {
-                    $currentMin = $this->getVersionInt($result[0]);
-                    $currentMax = $this->getVersionInt($result[1]);
+                    $currentMin = $this->_getVersionInt($result[0]);
+                    $currentMax = $this->_getVersionInt($result[1]);
 
                     if (false == is_null($currentMin) && $min < $currentMin)
                     {
@@ -64,10 +53,10 @@ class PhpCompatibility implements JudgePlugin
             die ('PHP_CompatInfo Exception : ' . $e->getMessage() . PHP_EOL);
         }
 
-        if ($min <= $this->getVersionInt($settings->min) && $maxReadable=='latest') {
+        if ($min <= $this->_getVersionInt($this->_settings->min) && $maxReadable=='latest') {
            IssueHandler::addIssue(new Issue( array(
                "extension"  =>  $extensionPath,
-               "checkname"  => $this->name,
+               "checkname"  => $this->_pluginName,
                "type"       => 'php_compatibility',
                "comment"    => vsprintf('Extension is compatible to PHP from version %s up to latest versions',
                 array($minReadable)),
@@ -76,15 +65,16 @@ class PhpCompatibility implements JudgePlugin
             return ;
         }
         IssueHandler::addIssue(new Issue( array(
-            "extension" => $extensionPath ,"checkname" => $this->name,
+            "extension" => $extensionPath,
+            "checkname" => $this->_pluginName,
             "type"      => 'php_compatibility',
             "comment"   => vsprintf('Extension is compatible to PHP from version %s (instead of required %s) up to %s',
-            array($minReadable, $settings->min, $maxReadable)),
+            array($minReadable, $this->_settings->min, $maxReadable)),
             "failed"    => true
         )));
     }
 
-    protected function getVersionInt($version)
+    protected function _getVersionInt($version)
     {
         if (strlen($version)) {
             list($major, $minor, $revision) = explode('.', $version);

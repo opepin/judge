@@ -1,7 +1,6 @@
 <?php
 namespace Rewrites;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
@@ -13,69 +12,71 @@ use Netresearch\Plugin as Plugin;
  */
 class Rewrites extends Plugin implements JudgePlugin
 {
-    protected $config;
-    protected $extensionPath;
-    protected $settings;
-    protected $rewrites=array();
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-    }
-
+    /**
+     * @param $extensionPath
+     */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
+        parent::execute($extensionPath);
 
         $command = sprintf('find "%s" -name config.xml', $extensionPath);
         try {
             $configFiles = $this->_executeCommand($command);
         } catch (\Zend_Exception $e) {
-            return $this->settings->unfinished;
+            return;
         }
 
         $types = array('blocks', 'models');
+        $rewrites = array();
         foreach ($configFiles as $configFile) {
+            $config = simplexml_load_file($configFile);
             foreach ($types as $type) {
-                $this->findRewrites($configFile, $type);
+                $rewrites = array_merge($rewrites, $this->_findRewrites($config, $type));
             }
         }
 
-        foreach ($this->rewrites as $rewrite) {
+        foreach ($rewrites as $rewrite) {
             list($type, $code) = explode('s:', $rewrite);
-            $typePrefix = $this->isCritical($rewrite) ? 'critical_' : '';
-                IssueHandler::addIssue(new Issue( array( 
-                    "extension" =>  $extensionPath,
-                    "checkname" => $this->_pluginName,
-                    "type"      => $typePrefix . $type . '_rewrite',
-                    "comment"   => $code,
-                    "failed"    =>  true
-                )));
+            $typePrefix = $this->_isCritical($rewrite) ? 'critical_' : '';
+            IssueHandler::addIssue(new Issue(array(
+                "extension" => $extensionPath,
+                "checkname" => $this->_pluginName,
+                "type"      => $typePrefix . $type . '_rewrite',
+                "comment"   => $code,
+                "failed"    => true
+            )));
         }
     }
 
-    protected function findRewrites($configFile, $type)
+    /**
+     * @param \SimpleXMLElement $config
+     * @param string $type
+     * @return array
+     */
+    protected function _findRewrites($config, $type)
     {
         $xpath = '/config/global/' . $type . '//rewrite/..';
-        $config = simplexml_load_file($configFile);
+        $rewrites = array();
         foreach ($config->xpath($xpath) as $moduleRewrites) {
             $module = $moduleRewrites->getName();
-            foreach ($moduleRewrites->rewrite->children() as $path=>$class) {
-                $this->rewrites[] = $type . ':' . $module . '/' . $path;
+            foreach ($moduleRewrites->rewrite->children() as $path => $class) {
+                $rewrites[] = $type . ':' . $module . '/' . $path;
             }
         }
+        return $rewrites;
     }
 
-    protected function isCritical($rewrite)
+    /**
+     * @param $rewrite
+     * @return bool
+     */
+    protected function _isCritical($rewrite)
     {
-        $critical = $this->settings->critical->toArray();
+        $critical = $this->_settings->critical->toArray();
         list($type, $code) = explode(':', $rewrite);
-        if (false == is_array($critical[$type])) {
-            return false;
-        }
-        return in_array($code, $critical[$type]);
+        return !empty($critical[$type])
+            && is_array($critical[$type])
+            && in_array($code, $critical[$type]);
     }
 }
 

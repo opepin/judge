@@ -6,7 +6,7 @@ use \Exception as Exception;
 
 abstract class Base
 {
-    protected $source;
+    protected $_source;
 
     /**
      * set source to new instance
@@ -16,7 +16,7 @@ abstract class Base
      */
     public function __construct($source)
     {
-        $this->source = $source;
+        $this->_source = $source;
     }
 
     public static function isGitRepo($repoUrl)

@@ -1,33 +1,19 @@
 <?php
 namespace CodeCoverage;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use \dibi as dibi;
 use Netresearch\Plugin as Plugin;
 
-class CodeCoverage extends Plugin implements JudgePlugin
+class CodeCoverage extends Plugin
 {
-    /**
-     * The global Judge configuration
-     * @var \Zend_Config_Ini
-     */
-    protected $config;
-
-    /**
-     * The local plugin configuration
-     * @var \Zend_Config_Ini
-     */
-    protected $settings;
-
     /**
      * The filesystem path to the Magento installation
      * @var string
      */
-    protected $magentoTarget;
+    protected $_magentoTarget;
 
     /**
      * DB name for jumpstorm running
@@ -41,14 +27,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * @link http://www.ecomdev.org/2011/02/01/phpunit-and-magento-yes-you-can.html
      * @var array
      */
-    protected $moduleNames;
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-    }
+    protected $_moduleNames;
 
     /**
      * Execute the CodeCoverage plugin (entry point)
@@ -62,13 +41,13 @@ class CodeCoverage extends Plugin implements JudgePlugin
         if (!extension_loaded('xdebug')) {
             throw new \Exception("The Xdebug extension is not loaded.");
         }
-        $this->_extensionPath = $extensionPath;
+        parent::execute($extensionPath);
 
         // scan for phpunit configuration
-        $this->moduleNames = XmlReader::getModuleNames($extensionPath);
-        if (!empty($this->moduleNames)) {
+        $this->_moduleNames = XmlReader::getModuleNames($extensionPath);
+        if (!empty($this->_moduleNames)) {
             try {
-                $this->setupUnitTestEnvironment($extensionPath);
+                $this->_setupUnitTestEnvironment($extensionPath);
             } catch (\Exception $e) {
                 $this->setUnfinishedIssue();
                 $this->_cleanTestEnvironment();
@@ -77,7 +56,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
                 return ;
             }
 
-            $this->evaluateTestCoverage($extensionPath);
+            $this->_evaluateTestCoverage($extensionPath);
         }
     }
 
@@ -87,24 +66,24 @@ class CodeCoverage extends Plugin implements JudgePlugin
      *
      * @param string $extensionPath
      */
-    protected function evaluateTestCoverage($extensionPath)
+    protected function _evaluateTestCoverage($extensionPath)
     {
         $executable = realpath('vendor/bin/phpunit');
-        $phpUnitCoverageFile = $this->magentoTarget . '/codecoverage' . (string) $this->config->token . '.xml';
+        $phpUnitCoverageFile = $this->_magentoTarget . '/codecoverage' . (string) $this->_config->token . '.xml';
 
         $phpUnitSwitches = array(
             sprintf("--coverage-clover %s", $phpUnitCoverageFile),
-            sprintf("--filter %s", implode('|', $this->moduleNames))
+            sprintf("--filter %s", implode('|', $this->_moduleNames))
         );
-        if (isset($this->settings->phpUnitSwitches)) {
+        if (isset($this->_settings->phpUnitSwitches)) {
             $phpUnitSwitches = array_merge(
                 $phpUnitSwitches,
-                $this->settings->phpUnitSwitches->toArray()
+                $this->_settings->phpUnitSwitches->toArray()
             );
         }
         $switches = implode(' ', $phpUnitSwitches);
-        $command = 'cd ' . $this->magentoTarget . ' && ' . $executable . ' ' . $switches;
-        $pdependSummaryFile = 'summary' . (string) $this->config->token . '.xml';
+        $command = 'cd ' . $this->_magentoTarget . ' && ' . $executable . ' ' . $switches;
+        $pdependSummaryFile = 'summary' . (string) $this->_config->token . '.xml';
         $execString = sprintf('vendor/pdepend/pdepend/src/bin/pdepend --summary-xml="%s" "%s"', $pdependSummaryFile, $extensionPath);
 
         try {
@@ -128,11 +107,11 @@ class CodeCoverage extends Plugin implements JudgePlugin
         }
 
         $phpUnitXpaths = array();
-        foreach ($this->moduleNames as $modulePrefixString) {
+        foreach ($this->_moduleNames as $modulePrefixString) {
             $phpUnitXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')]/../metrics";
         }
-        $codeCoverages = $this->evaluateCodeCoverage($phpUnitCoverageFile, $phpUnitXpaths);
-        $codeCoverageSettings = $this->settings->phpUnitCodeCoverages->toArray();
+        $codeCoverages = $this->_evaluateCodeCoverage($phpUnitCoverageFile, $phpUnitXpaths);
+        $codeCoverageSettings = $this->_settings->phpUnitCodeCoverages->toArray();
         foreach (array_keys($codeCoverageSettings) as $codeCoverageType) {
             if (array_key_exists($codeCoverageType, $codeCoverages)) {
                 IssueHandler::addIssue(new Issue(
@@ -147,12 +126,12 @@ class CodeCoverage extends Plugin implements JudgePlugin
         // compare phpunit test results with pdepend
         $phpUnitXpaths = array();
         $pdependXpaths = array();
-        foreach ($this->moduleNames as $modulePrefixString) {
+        foreach ($this->_moduleNames as $modulePrefixString) {
             $phpUnitXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')]";
             $pdependXpaths[] = "//class[starts-with(@name, '" . $modulePrefixString . "')  and not(starts-with(@name, '" . $modulePrefixString . '_Test' . "'))]";
         }
-        $phpUnitClasses = $this->getClasses($phpUnitCoverageFile, $phpUnitXpaths);
-        $pdependClasses = $this->getClasses($pdependSummaryFile, $pdependXpaths);
+        $phpUnitClasses = $this->_getClasses($phpUnitCoverageFile, $phpUnitXpaths);
+        $pdependClasses = $this->_getClasses($pdependSummaryFile, $pdependXpaths);
         $notCoveredClasses = array_diff($pdependClasses, $phpUnitClasses);
 
         if (0 < sizeof($notCoveredClasses)) {
@@ -175,14 +154,14 @@ class CodeCoverage extends Plugin implements JudgePlugin
      */
     protected function _cleanTestEnvironment()
     {
-        if ($this->settings->useJumpstorm == true) {
+        if ($this->_settings->useJumpstorm == true) {
             try {
                 // remove test source dir
-                exec(sprintf('rm -rf %s', $this->magentoTarget));
+                exec(sprintf('rm -rf %s', $this->_magentoTarget));
 
                 //drop test databases
                 $jumpstormConfig = new \Zend_Config_Ini(
-                    $this->settings->jumpstormIniFile, null, array('allowModifications' => true)
+                    $this->_settings->jumpstormIniFile, null, array('allowModifications' => true)
                 );
                 $databaseConfig = $jumpstormConfig->common->db;
                 if (0 == strlen($databaseConfig->password)) {
@@ -218,11 +197,11 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * @param string $xpathExpression - the xpath for retrieving the class names
      * @return type
      */
-    protected function getClasses($pathToXmlFile, $xpathExpressions)
+    protected function _getClasses($pathToXmlFile, $xpathExpressions)
     {
         $classes = array();
         foreach ($xpathExpressions as $xpathExpression) {
-            $classNodes = $this->getNodes($pathToXmlFile, $xpathExpression);
+            $classNodes = $this->_getNodes($pathToXmlFile, $xpathExpression);
             if (!is_null($classNodes)) {
                 foreach ($classNodes as $classNode) {
                     // collect class names for determinig those which weren't covered by a test
@@ -244,7 +223,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * @param string $xpathExpression - the xpath for retrievibng the results for the classes
      * @return array - the array containing the code coverage results
      */
-    protected function evaluateCodeCoverage($pathToXmlReport, $xpathExpressions)
+    protected function _evaluateCodeCoverage($pathToXmlReport, $xpathExpressions)
     {
         $valuesForClasses = array(
             'coveredmethods'        => 0,
@@ -263,18 +242,18 @@ class CodeCoverage extends Plugin implements JudgePlugin
             'elementsCoverage'      => 0
         );
         foreach ($xpathExpressions as $xpathExpression) {
-            $classNodes = $this->getNodes($pathToXmlReport, $xpathExpression);
+            $classNodes = $this->_getNodes($pathToXmlReport, $xpathExpression);
             if (!is_null($classNodes)) {
                 foreach ($classNodes as $classNode) {
                     foreach (array_keys($valuesForClasses) as $key) {
-                        $valuesForClasses[$key] += $this->getValueForNodeAttr($classNode, $key);
+                        $valuesForClasses[$key] += $this->_getValueForNodeAttr($classNode, $key);
                     }
                 }
             }
-            $codeCoverage['methodCoverage']         += $this->getCoverageRatio($valuesForClasses['coveredmethods'], $valuesForClasses['methods']);
-            $codeCoverage['statementCoverage']      += $this->getCoverageRatio($valuesForClasses['coveredstatements'], $valuesForClasses['statements']);
-            $codeCoverage['conditionalsCoverage']   += $this->getCoverageRatio($valuesForClasses['coveredconditionals'], $valuesForClasses['conditionals']);
-            $codeCoverage['elementsCoverage']       += $this->getCoverageRatio($valuesForClasses['coveredelements'], $valuesForClasses['elements']);
+            $codeCoverage['methodCoverage']         += $this->_getCoverageRatio($valuesForClasses['coveredmethods'], $valuesForClasses['methods']);
+            $codeCoverage['statementCoverage']      += $this->_getCoverageRatio($valuesForClasses['coveredstatements'], $valuesForClasses['statements']);
+            $codeCoverage['conditionalsCoverage']   += $this->_getCoverageRatio($valuesForClasses['coveredconditionals'], $valuesForClasses['conditionals']);
+            $codeCoverage['elementsCoverage']       += $this->_getCoverageRatio($valuesForClasses['coveredelements'], $valuesForClasses['elements']);
         }
         return $codeCoverage;
     }
@@ -286,7 +265,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * @param string $xpathExpression - the xpath for retrieving the nodes
      * @return array - the nodes
      */
-    protected function getNodes($pathToXmlReport, $xpathExpression)
+    protected function _getNodes($pathToXmlReport, $xpathExpression)
     {
         $xmlElement = simplexml_load_file($pathToXmlReport);
         $classNodes = null;
@@ -302,7 +281,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * @param string $attrName
      * @return mixed - the value
      */
-    protected function getValueForNodeAttr(\SimpleXMLElement $node, $attrName)
+    protected function _getValueForNodeAttr(\SimpleXMLElement $node, $attrName)
     {
         $value = 0;
         if (!is_null($node[$attrName])) {
@@ -319,7 +298,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * @param float $total
      * @return float -the ratio between covered and total
      */
-    protected function getCoverageRatio($covered, $total)
+    protected function _getCoverageRatio($covered, $total)
     {
         $ratio = 0;
         if (is_numeric($covered) && is_numeric($total) && $total > 0) {
@@ -336,19 +315,19 @@ class CodeCoverage extends Plugin implements JudgePlugin
      * @param string $extensionPath Path to the extension to be evaluated
      * @throws \Exception
      */
-    protected function setupUnitTestEnvironment($extensionPath)
+    protected function _setupUnitTestEnvironment($extensionPath)
     {
         /**
          * getting the neccessary information like magento target from
          * the jumpstorm configuration even jumpstorm is not used to set up
          * the test environment
          */
-        if (!$this->settings->jumpstormIniFile) {
+        if (!$this->_settings->jumpstormIniFile) {
             throw new Exception("Required information missing in ini file: plugins.CodeCoverage.jumpstormIniFile");
         }
 
         $jumpstormConfig = new \Zend_Config_Ini(
-            $this->settings->jumpstormIniFile,
+            $this->_settings->jumpstormIniFile,
             null,
             array('allowModifications' => true)
         );
@@ -357,12 +336,12 @@ class CodeCoverage extends Plugin implements JudgePlugin
             throw new \Exception("Required information missing in jumpstorm ini file: [common]");
         }
 
-        if ($this->config->token) {
-            $jumpstormConfig->common->magento->target = $jumpstormConfig->common->magento->target . '_' . $this->config->token;
-            $jumpstormConfig->common->db->name = $jumpstormConfig->common->db->name . '_' . $this->config->token;
+        if ($this->_config->token) {
+            $jumpstormConfig->common->magento->target = $jumpstormConfig->common->magento->target . '_' . $this->_config->token;
+            $jumpstormConfig->common->db->name = $jumpstormConfig->common->db->name . '_' . $this->_config->token;
         }
 
-        $this->magentoTarget = rtrim($jumpstormConfig->common->magento->target, DIRECTORY_SEPARATOR);
+        $this->_magentoTarget = rtrim($jumpstormConfig->common->magento->target, DIRECTORY_SEPARATOR);
         $this->_testDbName = $jumpstormConfig->common->db->name;
 
         // import test environment configuration from console: [extensions] section
@@ -371,7 +350,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
         );
 
         // force (re)installation using jumpstorm
-        if ($this->settings->useJumpstorm) {
+        if ($this->_settings->useJumpstorm) {
             $requiredSections = array('magento', 'unittesting');
             foreach ($requiredSections as $section) {
                 if (!$jumpstormConfig->{$section}) {
@@ -379,7 +358,7 @@ class CodeCoverage extends Plugin implements JudgePlugin
                 }
             }
 
-            $iniFile = 'tmp/jumpstorm' . (string) $this->config->token . '.ini';
+            $iniFile = 'tmp/jumpstorm' . (string) $this->_config->token . '.ini';
             $writer = new \Zend_Config_Writer_Ini();
             $writer->write($iniFile, $jumpstormConfig);
 
