@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<ruleset name="GlobalVariables">
+    <description>Sniffs for security checker regarding global variables results</description>
+</ruleset>
