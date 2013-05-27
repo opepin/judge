@@ -9,6 +9,9 @@ use Netresearch\IssueHandler;
  */
 abstract class Plugin implements PluginInterface
 {
+    const OCCURRENCES_LIST_PREFIX = '  * ';
+    const OCCURRENCES_LIST_SUFFIX = PHP_EOL;
+
     protected $_phpBin;
     protected $_execCommand;
 
@@ -26,12 +29,12 @@ abstract class Plugin implements PluginInterface
 
     /**
      * The global Judge configuration
-     * @var Config
+     * @var \Netresearch\Config
      */
     protected $_config;
     /**
      * The local plugin configuration
-     * @var Config
+     * @var \Zend_Config
      */
     protected $_settings;
 
@@ -87,7 +90,7 @@ abstract class Plugin implements PluginInterface
     /**
      * @param string $command
      * @return array
-     * @throws Exception
+     * @throws \Zend_Exception
      */
     protected function _executeCommand($command)
     {
