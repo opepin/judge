@@ -1,5 +1,5 @@
 <?php
-class Output_Sniffs_UnescapedOutput_EchoPrintSniff implements PHP_CodeSniffer_Sniff {
+class OutputEchoPrint_Sniffs_UnescapedOutput_EchoPrintSniff implements PHP_CodeSniffer_Sniff {
 
     public function register()
     {

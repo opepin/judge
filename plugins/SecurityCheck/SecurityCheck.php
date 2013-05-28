@@ -36,22 +36,32 @@ class SecurityCheck extends Plugin implements JudgePlugin
         $settings = $this->config->plugins->{$this->_pluginName};
         $this->_checkGlobalVariables($extensionPath);
         $this->_checkOutput($extensionPath);
-        $this->checkForSQLQueries($extensionPath);
+        $this->_checkForSQLQueries($extensionPath);
     }
     
     /**
      * Check extension for not to have "echo", "print", "var_dump()", "var_export()" calls not in templates
+     * Check extension for not to have "var_dump()" and "var_export()" calls in templates
      * 
      * @param string $extensionPath 
      */
     protected function _checkOutput($extensionPath)
     {
         $addionalParams = array(
-            'standard'   => __DIR__ . '/CodeSniffer/Standards/Output',
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/OutputEchoPrint',
             'extensions' => 'php',
         );
         $csResults = $this->_executePhpCommand($this->config, $addionalParams);
-        $parsedResult = $this->_parsePhpCsResult($csResults);
+        $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults);
+        
+        $addionalParams = array(
+            'standard' => __DIR__ . '/CodeSniffer/Standards/Output',
+            'extensions' => 'php,phtml',
+        );        
+        $csResults = $this->_executePhpCommand($this->config, $addionalParams);
+        $parsedTemplatesResult = $this->_parsePhpCsResult($csResults);
+        
+        $parsedResult = array_merge($parsedNotTemplatesResult, $parsedTemplatesResult);
         $failed = count($parsedResult) > $this->settings->allowedMissingEscaping ? true : false;
         foreach ($parsedResult as $comment) {
             IssueHandler::addIssue(new Issue( array( 
@@ -93,7 +103,7 @@ class SecurityCheck extends Plugin implements JudgePlugin
      *
      * @param type $extensionPath
      */
-    protected function checkForSQLQueries($extensionPath)
+    protected function _checkForSQLQueries($extensionPath)
     {
         foreach ($this->settings->sqlQueryPattern as $sqlQueryPattern) {
             $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $extensionPath . '/app';

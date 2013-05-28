@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
-<ruleset name="Output">
-    <description>Sniffs for security checker regarding output</description>
+<ruleset name="OutputTemplates">
+    <description>Sniffs for security checker regarding output in templates</description>
 </ruleset>
