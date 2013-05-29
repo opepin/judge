@@ -12,13 +12,11 @@ class Method extends Tag
     const TYPE_ARRAY   = 'array';
     const TYPE_STRING  = 'string';
 
-    protected $shortTagType = 'm';
-    protected $tagType      = 'method';
-    protected $table        = 'methods';
+    protected $_shortTagType = 'm';
+    protected $_tagType      = 'method';
+    protected $_table        = 'methods';
 
-    protected $name;
-    protected $params=array();
-    protected $context=array();
+    protected $_params=array();
 
     public function __construct($name, $params, $context)
     {
@@ -27,19 +25,14 @@ class Method extends Tag
         $this->setContext($context);
     }
 
-    protected function getTableName()
-    {
-        return self::TABLE;
-    }
-
     public function setName($name)
     {
-        $this->name = $name;
+        $this->_name = $name;
     }
 
-    protected function getFieldsToSelect()
+    protected function _getFieldsToSelect()
     {
-        $fields = parent::getFieldsToSelect();
+        $fields = parent::_getFieldsToSelect();
         $fields[] = 'class_id';
         $fields[] = 'visibility';
         $fields[] = 'required_params_count';
@@ -50,15 +43,15 @@ class Method extends Tag
 
     public function setParams($params)
     {
-        $this->params = $params;
+        $this->_params = $params;
     }
 
     public function setContext($context)
     {
         if (false == is_array($context)) {
-            $context = $this->getContextArray($context);
+            $context = $this->_getContextArray($context);
         }
-        $this->context = $context;
+        $this->_context = $context;
     }
 
     /**
@@ -71,7 +64,7 @@ class Method extends Tag
      */
     public function isParamType($offset, $expectedType)
     {
-        $param = $this->params[$offset];
+        $param = $this->_params[$offset];
         $value = $param->value;
         $type  = self::TYPE_MIXED;
         if ($param->value instanceof \PHPParser_Node_Expr_MethodCall) {
@@ -126,27 +119,22 @@ class Method extends Tag
      * @param mixed $contextString
      * @return void
      */
-    protected function getContextArray($contextString)
+    protected function _getContextArray($contextString)
     {
         return array();
     }
 
-    public function getName()
-    {
-        return $this->name;
-    }
-
     public function getParams()
     {
-        return $this->params;
+        return $this->_params;
     }
 
     public function getContext($key=null)
     {
         if (is_null($key)) {
-            return $this->context;
+            return $this->_context;
         }
-        return $this->context[$key];
+        return $this->_context[$key];
     }
 
     /**
@@ -167,7 +155,7 @@ class Method extends Tag
      * @param array $candidates Array of DibiRows
      * @return array
      */
-    protected function filterByParamCount($candidates)
+    protected function _filterByParamCount($candidates)
     {
         $infiniteParamsMethods = array(
             'Mage_Core_Helper_Abstract' => array(
@@ -180,7 +168,7 @@ class Method extends Tag
             }
         }
         foreach ($candidates as $key => $candidate) {
-            $givenParamsCount = count($this->params);
+            $givenParamsCount = count($this->_params);
             $minParamsCount = $candidate->required_params_count;
             $maxParamsCount = $candidate->required_params_count + $candidate->optional_params_count;
             if ($givenParamsCount < $minParamsCount
@@ -199,11 +187,11 @@ class Method extends Tag
      * @param array $candidates Array of DibiRows
      * @return array
      */
-    protected function filterByContext($candidates)
+    protected function _filterByContext($candidates)
     {
-        if (false === array_key_exists('class', $this->context)
-            && 0 < strlen($this->context['class'])
-            && Method::TYPE_MIXED !== $this->context['class']
+        if (false === array_key_exists('class', $this->_context)
+            && 0 < strlen($this->_context['class'])
+            && Method::TYPE_MIXED !== $this->_context['class']
             && 0 < count($candidates)
         ) {
             $classIds = array();
@@ -217,13 +205,13 @@ class Method extends Tag
                 $result = dibi::fetchPairs(
                     $query,
                     $classIds,
-                    $this->context['class']
+                    $this->_context['class']
                 );
             } catch (\DibiDriverException $e) {
                 dibi::test(
                     $query,
                     $classIds,
-                    $this->context['class']
+                    $this->_context['class']
                 );
                 throw $e;
             }

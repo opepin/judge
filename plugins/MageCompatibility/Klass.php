@@ -8,13 +8,13 @@ class Klass extends Tag
     const TABLE          = 'methods';
     const RELATION_TABLE = 'method_signature';
 
-    protected $shortTagType = 'c';
-    protected $tagType      = 'class';
-    protected $table        = 'classes';
+    protected $_shortTagType = 'c';
+    protected $_tagType      = 'class';
+    protected $_table        = 'classes';
 
-    protected $name;
+    protected $_name;
 
-    protected $type=self::TYPE_UNKNOWN;
+    protected $_type=self::TYPE_UNKNOWN;
 
     /**
      * create Klass with given name
@@ -30,11 +30,6 @@ class Klass extends Tag
         }
     }
 
-    protected function getTableName()
-    {
-        return self::TABLE;
-    }
-
     /**
      * set class name
      * 
@@ -43,23 +38,23 @@ class Klass extends Tag
      */
     public function setName($name)
     {
-        $this->name = $name;
+        $this->_name = $name;
         return $this;
     }
 
     public function setType($type)
     {
-        $this->type = $type;
+        $this->_type = $type;
     }
 
     public function getType()
     {
-        return self::TYPE_UNKNOWN == $this->type ? null : $this->type;
+        return self::TYPE_UNKNOWN == $this->_type ? null : $this->_type;
     }
 
     public function getName()
     {
-        return $this->getMagentoClassName($this->name, $this->type);
+        return $this->_getMagentoClassName($this->_name, $this->_type);
     }
 
     public function isExtensionClass($identifier, $filePathPattern, $extensionPath)
@@ -73,7 +68,7 @@ class Klass extends Tag
         } else {
             $filePathPattern = 'app/code/*/*/*/' . $filePathPattern;
 
-            list($extensionName, $classPathItems) = $this->getIdentifierParts($identifier);
+            list($extensionName, $classPathItems) = $this->_getIdentifierParts($identifier);
             foreach ($classPathItems as $pathItem) {
                 $filePathPattern .= '/' . ucfirst($pathItem);
             }
@@ -83,12 +78,12 @@ class Klass extends Tag
         }
     }
 
-    protected function getMagentoClassName($identifier, $type)
+    protected function _getMagentoClassName($identifier, $type)
     {
         if (0 < preg_match('/^([a-zA-Z0-9]+_)+[a-zA-Z0-9]+$/', $identifier)) {
             return $identifier;
         }
-        list($extensionName, $classPathItems) = $this->getIdentifierParts($identifier);
+        list($extensionName, $classPathItems) = $this->_getIdentifierParts($identifier);
         $className = 'Mage_' . ucfirst($extensionName) . '_' . ucfirst($type);
 
         foreach ($classPathItems as $pathItem) {
@@ -97,7 +92,7 @@ class Klass extends Tag
         return $className;
     }
 
-    protected function getIdentifierParts($identifier)
+    protected function _getIdentifierParts($identifier)
     {
         $identifierParts = explode('/', $identifier);
         $class = 'data';

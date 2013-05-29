@@ -5,11 +5,18 @@ use Netresearch\Logger;
 
 use \dibi as dibi;
 
-class Tag
+abstract class Tag
 {
-    protected $config;
+    protected $_config;
 
-    protected function getFieldsToSelect()
+    protected $_shortTagType;
+    protected $_tagType;
+    protected $_table;
+
+    protected $_name;
+    protected $_context = array();
+
+    protected function _getFieldsToSelect()
     {
         return array(
             'ts.signature_id',
@@ -26,12 +33,12 @@ class Tag
      */
     public function getMagentoVersions()
     {
-        if ($fixedVersions = $this->getFixedVersions()) {
+        if ($fixedVersions = $this->_getFixedVersions()) {
             return $fixedVersions;
         }
-        $query = 'SELECT ' . implode(', ', $this->getFieldsToSelect()) . '
-            FROM [' . $this->table . '] t
-            INNER JOIN [' . $this->tagType . '_signature] ts ON (t.id = ts.' . $this->tagType . '_id)
+        $query = 'SELECT ' . implode(', ', $this->_getFieldsToSelect()) . '
+            FROM [' . $this->_table . '] t
+            INNER JOIN [' . $this->_tagType . '_signature] ts ON (t.id = ts.' . $this->_tagType . '_id)
             INNER JOIN [signatures] s ON (ts.signature_id = s.id)
             WHERE t.name = %s
             GROUP BY s.id'
@@ -50,7 +57,7 @@ class Tag
 
         /* get best matching signature id */
         if (1 < count($result)) {
-            $signatureIds = $this->getBestMatching($result->fetchAll());
+            $signatureIds = $this->_getBestMatching($result->fetchAll());
         } else {
             try {
                 $signatureIds = array_keys($result->fetchPairs());
@@ -60,7 +67,7 @@ class Tag
             }
         }
         if (false == is_array($signatureIds) || 0 == count($signatureIds)) {
-            Logger::warning('Could not find any matching definition of ' . $this->name);
+            Logger::warning('Could not find any matching definition of ' . $this->_name);
             return null;
         }
 
@@ -79,12 +86,17 @@ class Tag
         }
     }
 
+    public function getName()
+    {
+        return $this->_name;
+    }
+
     /**
      * Get fix Magento version list, if that tag is known as an exceptional case
      *
      * @return array|null
      */
-    protected function getFixedVersions()
+    protected function _getFixedVersions()
     {
         /* since there are some tags being supported in Magento versions we already know
          * but not recognized correctly
@@ -94,26 +106,26 @@ class Tag
         $fixedVersions = json_decode(file_get_contents(
             dirname(__FILE__) . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'fixedVersions.json'
         ));
-        foreach ($fixedVersions->{$this->table} as $candidate) {
+        foreach ($fixedVersions->{$this->_table} as $candidate) {
             if ($this->getName() == $candidate->name) {
-                if (array_key_exists('class', $this->context)
-                    && 0 < strlen($this->context['class'])
+                if (array_key_exists('class', $this->_context)
+                    && 0 < strlen($this->_context['class'])
                     && $candidate->classes
                 ) {
                     foreach ($candidate->classes as $class) {
                         $class = str_replace('*', '.*', $class);
-                        if (preg_match("/$class/", $this->context['class'])) {
-                            return $this->getMagentoVersionsLike($candidate->versions);
+                        if (preg_match("/$class/", $this->_context['class'])) {
+                            return $this->_getMagentoVersionsLike($candidate->versions);
                         }
                     }
                 } else {
-                    return $this->getMagentoVersionsLike($candidate->versions);
+                    return $this->_getMagentoVersionsLike($candidate->versions);
                 }
             }
         }
     }
 
-    protected function getMagentoVersionsLike($pattern)
+    protected function _getMagentoVersionsLike($pattern)
     {
         $pattern = str_replace("*", "%", $pattern);
 
@@ -135,10 +147,10 @@ class Tag
      * @param array $candidates Array of DibiRows
      * @return array
      */
-    protected function getBestMatching($candidates)
+    protected function _getBestMatching($candidates)
     {
-        $candidates = $this->filterByParamCount($candidates);
-        $candidates = $this->filterByContext($candidates);
+        $candidates = $this->_filterByParamCount($candidates);
+        $candidates = $this->_filterByContext($candidates);
         $signatureIds = array();
         foreach ($candidates as $candidate) {
             $signatureIds[] = $candidate->signature_id;
@@ -148,15 +160,15 @@ class Tag
 
     public function setConfig($config)
     {
-        $this->config = $config;
+        $this->_config = $config;
     }
 
-    protected function filterByParamCount($candidates)
+    protected function _filterByParamCount($candidates)
     {
         return $candidates;
     }
 
-    protected function filterByContext($candidates)
+    protected function _filterByContext($candidates)
     {
         return $candidates;
     }

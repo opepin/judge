@@ -1,14 +1,12 @@
 <?php
 namespace SecurityCheck;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
 use Netresearch\Plugin as Plugin;
-use Netresearch\PluginInterface as JudgePlugin;
 
-class SecurityCheck extends Plugin implements JudgePlugin
+class SecurityCheck extends Plugin
 {
     /**
      * Execution command
@@ -44,6 +42,7 @@ class SecurityCheck extends Plugin implements JudgePlugin
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults,
             'Output construction "%s" found not in templates');
+        $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults);
         
         $addionalParams = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/Output',
@@ -56,9 +55,9 @@ class SecurityCheck extends Plugin implements JudgePlugin
         $parsedResult = array_merge($parsedNotTemplatesResult, $parsedTemplatesResult);
         foreach ($parsedResult as $entry) {
             IssueHandler::addIssue(new Issue( array( 
-                "extension" => $this->_extensionPath,
-                "checkname" => $this->_pluginName,
-                "type"      => 'escape',
+                "extension"   => $this->_extensionPath,
+                "checkname"   => $this->_pluginName,
+                "type"        => 'escape',
                 "comment"     => $entry['comment'],
                 "files"       => $entry['files'],
                 "occurrences" => $entry['occurrences'],

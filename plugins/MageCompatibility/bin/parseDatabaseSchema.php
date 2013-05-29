@@ -2,125 +2,124 @@
 namespace MageCompatibility;
 
 use MageCompatibility\Extension\Config;
-use MageCompatibility\DatabaseParser;
 
 include realpath(dirname(__FILE__) . '/../Extension/Config.php');
 
-if (count($argv) < 3) {
+if (count($_SERVER['argv']) < 3) {
     die('Call with ' . __FILE__ . ' {path to magento} {database name}' . PHP_EOL);
 }
-$branch = $argv[1];
-$databaseName = $argv[2];
+$branch = $_SERVER['argv'][1];
+$databaseName = $_SERVER['argv'][2];
 
 class DatabaseParser extends Config
 {
-    protected $pathToMagentoBaseDir;
-    protected $databaseName;
-    protected $edition;
-    protected $version;
-    protected $basedir;
-    protected $tagFile;
-    protected $resourceModelNames;
-    protected $classIdentifiers;
+    protected $_pathToMagentoBaseDir;
+    protected $_databaseName;
+    protected $_edition;
+    protected $_version;
+    protected $_basedir;
+    protected $_tagFile;
+    protected $_resourceModelNames;
+    protected $_classIdentifiers;
 
     public function __construct($branch, $databaseName)
     {
-        $this->basedir = realpath(dirname(__FILE__) . '/../../../');
-        require_once $this->basedir . '/vendor/dg/dibi/dibi/dibi.php';
+        $this->_basedir = realpath(dirname(__FILE__) . '/../../../');
+        require_once $this->_basedir . '/vendor/dg/dibi/dibi/dibi.php';
 
-        $this->databaseName = $databaseName;
+        $this->_databaseName = $databaseName;
 
-        $this->createJumpstormIni($branch);
-        $this->setUpEnv();
-        $this->verifyMagento($this->pathToMagentoBaseDir);
+        $this->_createJumpstormIni($branch);
+        $this->_setUpEnv();
+        $this->_verifyMagento($this->_pathToMagentoBaseDir);
 
         \dibi::connect(array(
             //'driver'   => 'sqlite3',
             //'database' => $basedir . '/plugins/MageCompatibility/var/tags.sqlite'
             'driver'   => 'mysql',
             'username' => 'root',
-            'database' => $this->databaseName
+            'database' => $this->_databaseName
         ));
-        file_put_contents($this->getTagFileName(), '');
+        file_put_contents($this->_getTagFileName(), '');
     }
 
-    protected function verifyMagento($pathToMagentoBaseDir)
+    protected function _verifyMagento($pathToMagentoBaseDir)
     {
         include $pathToMagentoBaseDir . 'app/Mage.php';
 
-        $this->version = \Mage::getVersion();
+        $this->_version = \Mage::getVersion();
         if (method_exists('Mage', 'getEdition')) {
-            $this->edition = \Mage::getEdition();
+            $this->_edition = \Mage::getEdition();
         } else {
-            preg_match('/^1\.(\d+)\./', $this->version, $matches);
+            preg_match('/^1\.(\d+)\./', $this->_version, $matches);
             $majorRelease = $matches[1];
-            $this->edition = ($majorRelease < 7) ? 'Community' : 'Enterprise';
+            $this->_edition = ($majorRelease < 7) ? 'Community' : 'Enterprise';
         }
-        echo 'Analyzing Magento ' . $this->version . ' (' . $this->edition . ' Edition)...' . PHP_EOL;
+        echo 'Analyzing Magento ' . $this->_version . ' (' . $this->_edition . ' Edition)...' . PHP_EOL;
     }
 
-    protected function createJumpstormIni($branch)
+    protected function _createJumpstormIni($branch)
     {
-        $config = file_get_contents($this->basedir . '/plugins/MageCompatibility/var/base.jumpstorm.ini');
-        $this->jumpstormConfigFile = $this->basedir . '/plugins/MageCompatibility/var/tmp.jumpstorm.ini';
+        $config = file_get_contents($this->_basedir . '/plugins/MageCompatibility/var/base.jumpstorm.ini');
+        $this->jumpstormConfigFile = $this->_basedir . '/plugins/MageCompatibility/var/tmp.jumpstorm.ini';
         $config = str_replace('###branch###', $branch, $config);
-        $config = str_replace('###target###', $this->basedir . '/tmp/' . $branch, $config);
-        $this->pathToMagentoBaseDir = $this->basedir . '/tmp/' . $branch . '/';
-        $config = str_replace('###database###', $this->databaseName, $config);
+        $config = str_replace('###target###', $this->_basedir . '/tmp/' . $branch, $config);
+        $this->_pathToMagentoBaseDir = $this->_basedir . '/tmp/' . $branch . '/';
+        $config = str_replace('###database###', $this->_databaseName, $config);
         file_put_contents($this->jumpstormConfigFile, $config);
     }
 
-    protected function getTagFileName()
+    protected function _getTagFileName()
     {
-        return $this->basedir . '/plugins/MageCompatibility/var/tags/'
-            . strtolower($this->edition) . 'Database-' . $this->version . '.tags';
+        return $this->_basedir . '/plugins/MageCompatibility/var/tags/'
+            . strtolower($this->_edition) . 'Database-' . $this->_version . '.tags';
     }
 
     public function run()
     {
-        $tables = $this->getTables($this->pathToMagentoBaseDir);
+        $tables = $this->_getTables($this->_pathToMagentoBaseDir);
         foreach ($tables as $class=>$tableName) {
-            $this->writeMethodsForFlatTable($class, $tableName);
+            $this->_writeMethodsForFlatTable($class, $tableName);
         }
 
-        $eavEntities = $this->getEavEntities(array_keys($tables));
+        $eavEntities = $this->_getEavEntities(array_keys($tables));
         foreach ($eavEntities as $class) {
-            $this->writeMethodsForEavAttributes($class, $tables[$class]);
+            $this->_writeMethodsForEavAttributes($class, $tables[$class]);
         }
     }
 
-    protected function writeMethodsForFlatTable($class, $tableName)
+    protected function _writeMethodsForFlatTable($class, $tableName)
     {
         try {
             $fields = \dibi::query('DESCRIBE [' . $tableName . ']');
-            $this->writeMethodsForFields($class, $tableName, $fields, 'flat');
+            $this->_writeMethodsForFields($class, $tableName, $fields, 'flat');
         } catch (\Exception $e) {
             // skip non-existing tables
         }
     }
 
-    protected function writeMethodsForEavAttributes($model, $table)
+    protected function _writeMethodsForEavAttributes($model, $table)
     {
         $query = 'SELECT attribute_code as Field
             FROM eav_attribute a
             JOIN eav_entity_type t ON t.entity_type_id = a.entity_type_id
             WHERE entity_model = %s';
-        $this->writeMethodsForFields($model, $table, \dibi::query($query, $this->classIdentifiers[$model]), 'eav');
+        $this->_writeMethodsForFields($model, $table, \dibi::query($query, $this->_classIdentifiers[$model]), 'eav');
     }
 
-    protected function writeMethodsForFields($class, $tableName, $fields, $type)
+    protected function _writeMethodsForFields($class, $tableName, $fields, $type)
     {
         $lines = array();
         foreach ($fields as $row) {
-            $lines[] = $this->getTaglineForField($class, $tableName, $row->Field, $type, 'get', '$value=null');
-            $lines[] = $this->getTaglineForField($class, $tableName, $row->Field, $type, 'set', '$value=null');
-            $lines[] = $this->getTaglineForField($class, $tableName, $row->Field, $type, 'uns', '$value=null');
-            $lines[] = $this->getTaglineForField($class, $tableName, $row->Field, $type, 'has', '$value=null');
+            $lines[] = $this->_getTaglineForField($class, $tableName, $row->Field, $type, 'get', '$value=null');
+            $lines[] = $this->_getTaglineForField($class, $tableName, $row->Field, $type, 'set', '$value=null');
+            $lines[] = $this->_getTaglineForField($class, $tableName, $row->Field, $type, 'uns', '$value=null');
+            $lines[] = $this->_getTaglineForField($class, $tableName, $row->Field, $type, 'has', '$value=null');
         }
-        file_put_contents($this->getTagFileName(), $lines, FILE_APPEND);
+        file_put_contents($this->_getTagFileName(), $lines, FILE_APPEND);
     }
 
-    protected function getTaglineForField($class, $tableName, $fieldName, $type, $prefix, $params='')
+    protected function _getTaglineForField($class, $tableName, $fieldName, $type, $prefix, $params='')
     {
         $camelCaseFieldName = str_replace(' ', '', ucwords(str_replace('_', ' ', $fieldName)));
         $methodName = $prefix . $camelCaseFieldName;
@@ -134,27 +133,27 @@ class DatabaseParser extends Config
         return implode("\t", $method) . PHP_EOL;
     }
 
-    protected function setUpEnv()
+    protected function _setUpEnv()
     {
         echo 'Setting Up Magento environment via jumpström' . PHP_EOL;
         $iniFile = $this->jumpstormConfigFile;
         $installMagentoCommand = 'magento -v -c ' . $iniFile;
-        $executable = $this->basedir . '/vendor/netresearch/jumpstorm/jumpstorm';
+        $executable = $this->_basedir . '/vendor/netresearch/jumpstorm/jumpstorm';
         passthru(sprintf('%s %s', $executable, $installMagentoCommand), $error);
         if ($error) {
             die('Installation failed!');
         }
     }
 
-    protected function getEavEntities($models)
+    protected function _getEavEntities($models)
     {
         $eavModels = array();
         foreach ($models as $model) {
-            if (false === array_key_exists($model, $this->resourceModelNames)) {
+            if (false === array_key_exists($model, $this->_resourceModelNames)) {
                 continue;
             }
-            $resourceModel = $this->resourceModelNames[$model];
-            if ($this->isEavModel($resourceModel)) {
+            $resourceModel = $this->_resourceModelNames[$model];
+            if ($this->_isEavModel($resourceModel)) {
                 echo "* EAV: $model\n";
                 $eavModels[] = $model;
             }
@@ -162,8 +161,8 @@ class DatabaseParser extends Config
         return $eavModels;
     }
 
-    protected function isEavModel($model) {
-        $command = sprintf('grep -rEzoh "%s extends \w+" %s/app/code/core/', $model, $this->pathToMagentoBaseDir);
+    protected function _isEavModel($model) {
+        $command = sprintf('grep -rEzoh "%s extends \w+" %s/app/code/core/', $model, $this->_pathToMagentoBaseDir);
         exec($command, $output, $noMatch);
         if ($noMatch) {
             return false;
@@ -176,7 +175,7 @@ class DatabaseParser extends Config
         if ('Mage_Eav_Model_Entity_Abstract' == $parentClass) {
             return true;
         }
-        return $this->isEavModel($parentClass);
+        return $this->_isEavModel($parentClass);
     }
 }
 

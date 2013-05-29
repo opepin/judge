@@ -1,27 +1,16 @@
 <?php
 namespace CoreHacks;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
 /**
  * detect Magento core hacks
  */
-class CoreHacks extends Plugin implements JudgePlugin
+class CoreHacks extends Plugin
 {
-    protected $config;
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-    }
-
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
@@ -32,13 +21,13 @@ class CoreHacks extends Plugin implements JudgePlugin
             try {
                 $output = $this->_executeCommand($command);
             } catch (\Zend_Exception $e) {
-                return $this->settings->unfinished;
+                return;
             }
             $coreHackCount += count($output);
         }
         if ($coreHackCount != 0) {
             IssueHandler::addIssue(new Issue( array(
-                "extension" =>  $this->extensionPath,
+                "extension" =>  $this->_extensionPath,
                 "checkname" =>  $this->_pluginName,
                 "type"      =>  "corehack",
                 "comment"   =>  "corehack found",

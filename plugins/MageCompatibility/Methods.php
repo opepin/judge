@@ -3,15 +3,15 @@ namespace MageCompatibility;
 
 class Methods extends Tags
 {
-    protected $data = array();
+    protected $_ata = array();
 
     public function add(Method $method)
     {
-        $this->data[] = $method;
+        $this->_ata[] = $method;
     }
 
     public function count()
     {
-        return count($this->data);
+        return count($this->_ata);
     }
 }

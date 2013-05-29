@@ -1,29 +1,14 @@
 <?php
 namespace PerformanceCheck;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
+use Netresearch\Plugin as Plugin;
 
-class PerformanceCheck implements JudgePlugin
+class PerformanceCheck extends Plugin
 {
-    protected $config;
-    protected $extensionPath;
-    protected $settings;
-    protected $results;
-
-    /**
-     *
-     * @param Config $config
-     */
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->name   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->name};
-    }
+    protected $_results;
 
     /**
      *
@@ -31,16 +16,15 @@ class PerformanceCheck implements JudgePlugin
      */
     public function execute($extensionPath)
     {
-        $this->extensionPath = $extensionPath;
-        $settings = $this->config->plugins->{$this->name};
-        $possiblePerformanceKillers = $this->scanForPerformanceLeaks($extensionPath);
+        parent::execute($extensionPath);
+        $possiblePerformanceKillers = $this->_scanForPerformanceLeaks($extensionPath);
 
         if (0 < sizeof($possiblePerformanceKillers)) {
             foreach ($possiblePerformanceKillers as $possiblePerformanceKiller) {
-               Logger::setResultValue($extensionPath, $this->name, $possiblePerformanceKiller, count($possiblePerformanceKillers));
+               Logger::setResultValue($extensionPath, $this->_pluginName, $possiblePerformanceKiller, count($possiblePerformanceKillers));
                
                IssueHandler::addIssue(new Issue(
-                       array(   "extension"  => $extensionPath ,"checkname" => $this->name,
+                       array(   "extension"  => $extensionPath ,"checkname" => $this->_pluginName,
                                 "type"       => 'performance_leak',
                                 "comment"    => $possiblePerformanceKiller . ' (' . 
                            count($possiblePerformanceKillers) . 'times)',
@@ -53,9 +37,9 @@ class PerformanceCheck implements JudgePlugin
     /**
      * @TODO refactor (the same as \MageCompability\Extension::isUnitTestFile)
      */
-    protected function isUnitTestFile($filePath)
+    protected function _isUnitTestFile($filePath)
     {
-        $filePath = str_replace($this->extensionPath, '', $filePath);
+        $filePath = str_replace($this->_extensionPath, '', $filePath);
         return (0 < preg_match('~app/code/.*/.*/Test/~u', $filePath));
     }
 
@@ -66,16 +50,16 @@ class PerformanceCheck implements JudgePlugin
      * @param string $path
      * @return array array of potential performance issues
      */
-    protected function scanForPerformanceLeaks($path)
+    protected function _scanForPerformanceLeaks($path)
     {
         $possiblePerformanceLeaks = array();
         $parser = new \PHPParser_Parser(new \PHPParser_Lexer);
         foreach (glob($path . '/*') as $item) {
             if (is_dir($item)) {
-                $possiblePerformanceLeaks = array_merge($possiblePerformanceLeaks,$this->scanForPerformanceLeaks($item));
+                $possiblePerformanceLeaks = array_merge($possiblePerformanceLeaks,$this->_scanForPerformanceLeaks($item));
             }
             if (is_file($item) && is_readable($item)) {
-                if ($this->isUnitTestFile($item)) {
+                if ($this->_isUnitTestFile($item)) {
                     continue;
                 }
                 /* we assume that there are only php files */
@@ -92,7 +76,7 @@ class PerformanceCheck implements JudgePlugin
                     $serializer = new \PHPParser_Serializer_XML;
                     $xml = $serializer->serialize($stmts);
 //                    file_put_contents($item . '.stmts.xml', var_export($xml, true));
-                    $leaks = $this->collectPerformanceKillers(simplexml_load_string($xml), $item);
+                    $leaks = $this->_collectPerformanceKillers(simplexml_load_string($xml), $item);
                     $possiblePerformanceLeaks = array_merge($possiblePerformanceLeaks, $leaks);
                 } catch (\PHPParser_Error $e) {
                     // no valid php
@@ -104,7 +88,7 @@ class PerformanceCheck implements JudgePlugin
     }
 
 
-    protected function collectPerformanceKillers($xmlTree, $fileName)
+    protected function _collectPerformanceKillers($xmlTree, $fileName)
     {
         $possiblePerformanceLeaks = array();
         $stmts = array('Stmt_Foreach', 'Stmt_For', 'Stmt_While', 'Stmt_Do');

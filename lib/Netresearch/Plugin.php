@@ -7,12 +7,62 @@ use Netresearch\IssueHandler;
 /**
  * Base class for plugins
  */
-class Plugin
+abstract class Plugin implements PluginInterface
 {
+    const OCCURRENCES_LIST_PREFIX = '  * ';
+    const OCCURRENCES_LIST_SUFFIX = PHP_EOL;
+
     protected $_phpBin;
+    /**
+     * Execution command
+     * @var string
+     */
     protected $_execCommand;
+
+    /**
+     * Plugin name, same as check class name
+     * @var string
+     */
     protected $_pluginName;
+
+    /**
+     * Path to extension source
+     * @var string
+     */
     protected $_extensionPath;
+
+    /**
+     * The global Judge configuration
+     * @var \Netresearch\Config
+     */
+    protected $_config;
+    /**
+     * The local plugin configuration
+     * @var \Zend_Config
+     */
+    protected $_settings;
+
+    /**
+     * Base constructor for all plugins
+     * @param Config $config
+     */
+    public function __construct(Config $config)
+    {
+        $this->_config = $config;
+        $this->_pluginName = current(explode('\\', get_class($this)));
+        $this->_settings = $this->_config->plugins->{$this->_pluginName};
+    }
+
+    /**
+     * Execute a plugin (entry point)
+     *
+     * @param string $extensionPath the path to the extension to check
+     */
+    public function execute($extensionPath)
+    {
+        $this->_extensionPath = $extensionPath;
+    }
+
 
     /**
      * @param Config $config
@@ -46,7 +96,7 @@ class Plugin
     /**
      * @param string $command
      * @return array
-     * @throws Exception
+     * @throws \Zend_Exception
      */
     protected function _executeCommand($command)
     {
@@ -55,7 +105,7 @@ class Plugin
 
         if ($status == 255) {
             $this->setUnfinishedIssue();
-            throw new \Exception('Failed to execute ' . $this->_pluginName .' plugin.');
+            throw new \Zend_Exception('Failed to execute ' . $this->_pluginName .' plugin.');
         }
 
         return $response;

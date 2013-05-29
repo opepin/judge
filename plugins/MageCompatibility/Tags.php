@@ -3,36 +3,36 @@ namespace MageCompatibility;
 
 class Tags implements \Iterator
 {
-    protected $position = 0;
-    protected $data = array();
+    protected $_position = 0;
+    protected $_ata = array();
 
     public function count()
     {
-        return count($this->data);
+        return count($this->_ata);
     }
 
     public function current()
     {
-        return $this->data[$this->position];
+        return $this->_ata[$this->_position];
     }
 
     public function rewind()
     {
-        $this->position = 0;
+        $this->_position = 0;
     }
 
     public function key()
     {
-        return $this->position;
+        return $this->_position;
     }
         
     function next()
     {
-        ++$this->position;
+        ++$this->_position;
     }
 
     function valid()
     {
-        return isset($this->data[$this->position]);
+        return isset($this->_ata[$this->_position]);
     }
 }

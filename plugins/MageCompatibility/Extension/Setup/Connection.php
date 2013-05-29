@@ -10,12 +10,12 @@ class Connection extends Setup
     }
 
     public function addColumn($table, $field, $options) {
-        $this->addField($table, $field);
+        $this->_addField($table, $field);
     }
 
     public function getChanges()
     {
-        return $this->changes;
+        return $this->_changes;
     }
 
     public function __call($method, $args)

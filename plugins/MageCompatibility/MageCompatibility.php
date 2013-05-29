@@ -1,33 +1,20 @@
 <?php
 namespace MageCompatibility;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
 use \dibi as dibi;
 
-class MageCompatibility extends Plugin implements JudgePlugin
+class MageCompatibility extends Plugin
 {
-    protected $config   = null;
-    protected $name     = null;
-    protected $settings = null;
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-    }
-
     public function execute($extensionPath)
     {
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-        $this->_extensionPath = $extensionPath;
+        parent::execute($extensionPath);
         try{
-            $this->connectTagDatabase();
+            $this->_connectTagDatabase();
 
             $availableVersions = dibi::query('SELECT concat( m.edition, " ", m.version ) as Magento FROM magento m ORDER BY Magento')->fetchPairs();
             $supportedVersions = array();
@@ -52,7 +39,7 @@ class MageCompatibility extends Plugin implements JudgePlugin
                 );
             }
             foreach ($classes as $class) {
-                $class->setConfig($this->settings);
+                $class->setConfig($this->_settings);
                 $supportedVersions = $class->getMagentoVersions();
                 if (is_array($supportedVersions)) {
                     $tagIncompatibleVersions = array_diff($availableVersions, $supportedVersions);
@@ -64,7 +51,7 @@ class MageCompatibility extends Plugin implements JudgePlugin
             foreach ($methods as $method) {
                 $isExtensionMethod = false;
                 $context = current($method->getContext());
-                $method->setConfig($this->settings);
+                $method->setConfig($this->_settings);
                 $supportedVersions = $method->getMagentoVersions();
                 //echo $context['class'] . '->' . $method->getName() . ' ';
                 if (false == is_array($supportedVersions)) {
@@ -136,12 +123,12 @@ class MageCompatibility extends Plugin implements JudgePlugin
                     unset($incompatibleVersions[$key]);
                 }
             }
-            if ($this->containsNoLatestVersion(array_keys($incompatibleVersions), 'CE')) {
+            if ($this->_containsNoLatestVersion(array_keys($incompatibleVersions), 'CE')) {
                 IssueHandler::addIssue(new Issue( array(
                     "extension" => $extensionPath ,"checkname" => $this->_pluginName,
                     "type"      => 'mage_compatibility',
                     "comment"   => sprintf('Extension supports Magento at least from CE version %s and EE version %s',
-                     $this->settings->min->ce, $this->settings->min->ee),
+                     $this->_settings->min->ce, $this->_settings->min->ee),
                     "failed"    =>  false
                 )));
                 return ;
@@ -154,25 +141,25 @@ class MageCompatibility extends Plugin implements JudgePlugin
         }
     }
 
-    protected function getTagFileNames()
+    protected function _getTagFileNames()
     {
         return glob(__DIR__ . '/var/tags/*');
     }
 
-    protected function getEdition($tagFileName)
+    protected function _getEdition($tagFileName)
     {
         list($edition, $version) = explode('-', baseName($tagFileName));
         return ucfirst(substr($edition, 0, 1)) . 'E';
     }
 
-    protected function getVersion($tagFileName)
+    protected function _getVersion($tagFileName)
     {
         $basename = strstr(basename($tagFileName), '.tags', $beforeNeedle=true);
         list($edition, $version) = explode('-', $basename);
         return $version;
     }
 
-    protected function getReadableVersionString($edition, $version)
+    protected function _getReadableVersionString($edition, $version)
     {
         return $edition . ' ' . $version;
     }
@@ -182,12 +169,12 @@ class MageCompatibility extends Plugin implements JudgePlugin
      *
      * @return void
      */
-    protected function connectTagDatabase()
+    protected function _connectTagDatabase()
     {
         $basedir = realpath(dirname(__FILE__) . '/../../');
         require_once $basedir . '/vendor/dg/dibi/dibi/dibi.php';
         if (false == dibi::isConnected()) {
-            $databaseConfig = $this->settings->database;
+            $databaseConfig = $this->_settings->database;
             if (0 == strlen($databaseConfig->password)) {
                 unset($databaseConfig->password);
             }
@@ -204,11 +191,11 @@ class MageCompatibility extends Plugin implements JudgePlugin
         }
     }
 
-    protected function containsNoLatestVersion($incompatibleVersions, $edition)
+    protected function _containsNoLatestVersion($incompatibleVersions, $edition)
     {
         /* for now we assume, all versions start with "1." */
-        $minCE = (int) str_replace('.', '', $this->settings->min->ce);
-        $minEE = (int) str_replace('.', '', $this->settings->min->ee);
+        $minCE = (int) str_replace('.', '', $this->_settings->min->ce);
+        $minEE = (int) str_replace('.', '', $this->_settings->min->ee);
         foreach ($incompatibleVersions as $currentVersion) {
             $min = $minCE;
             if (strtolower(trim(substr($currentVersion, 0,2))) == 'ee') {
