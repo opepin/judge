@@ -11,17 +11,17 @@ class Filesystem extends Source implements SourceInterface
 {
     public function copy($target, $branch = 'master')
     {
-        if (!file_exists($this->source)) {
-            throw new Exception("Source directory does not exist: '{$this->source}'");
+        if (!file_exists($this->_source)) {
+            throw new Exception("Source directory does not exist: '{$this->_source}'");
         }
         
         // make sure that source ends with directory separator
         // as we want to copy its contents, not the directory itself
-        $this->source = rtrim($this->source, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $this->_source = rtrim($this->_source, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
-        Logger::log('Copy files from %s', array($this->source));
+        Logger::log('Copy files from %s', array($this->_source));
         
-        $command = sprintf('rsync -a -h %s %s 2>&1', $this->source, $target);
+        $command = sprintf('rsync -a -h %s %s 2>&1', $this->_source, $target);
         Logger::log($command);
         exec($command, $result, $return);
         

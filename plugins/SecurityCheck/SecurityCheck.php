@@ -5,24 +5,17 @@ use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
-class SecurityCheck extends Plugin implements JudgePlugin
+class SecurityCheck extends Plugin
 {
-    protected $config;
-    protected $settings;
-    protected $results;
-
     /**
      *
      * @param Config $config
      */
     public function __construct(Config $config)
     {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
+        parent::__construct($config);
         $this->_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
     }
 
@@ -33,7 +26,6 @@ class SecurityCheck extends Plugin implements JudgePlugin
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
-        $settings = $this->config->plugins->{$this->_pluginName};
         $this->_checkGlobalVariables($extensionPath);
         $this->_checkOutput($extensionPath);
         $this->_checkForSQLQueries($extensionPath);
@@ -51,18 +43,18 @@ class SecurityCheck extends Plugin implements JudgePlugin
             'standard'   => __DIR__ . '/CodeSniffer/Standards/OutputEchoPrint',
             'extensions' => 'php',
         );
-        $csResults = $this->_executePhpCommand($this->config, $addionalParams);
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults);
         
         $addionalParams = array(
             'standard' => __DIR__ . '/CodeSniffer/Standards/Output',
             'extensions' => 'php,phtml',
         );        
-        $csResults = $this->_executePhpCommand($this->config, $addionalParams);
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedTemplatesResult = $this->_parsePhpCsResult($csResults);
         
         $parsedResult = array_merge($parsedNotTemplatesResult, $parsedTemplatesResult);
-        $failed = count($parsedResult) > $this->settings->allowedMissingEscaping ? true : false;
+        $failed = count($parsedResult) > $this->_settings->allowedMissingEscaping ? true : false;
         foreach ($parsedResult as $comment) {
             IssueHandler::addIssue(new Issue( array( 
                 "extension" => $extensionPath,
@@ -105,12 +97,12 @@ class SecurityCheck extends Plugin implements JudgePlugin
      */
     protected function _checkForSQLQueries($extensionPath)
     {
-        foreach ($this->settings->sqlQueryPattern as $sqlQueryPattern) {
+        foreach ($this->_settings->sqlQueryPattern as $sqlQueryPattern) {
             $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $extensionPath . '/app';
             try {
                 $filesWithThatToken = $this->_executeCommand($command);
             } catch (\Zend_Exception $e) {
-                return $this->settings->unfinished;
+                return;
             }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(

@@ -118,7 +118,7 @@ class Evaluate extends Command
 
                 $class = "$name\\$name";
                 $plugin = new $class($pluginConfig);
-                Logger::addCheck($extensionPath, $name, array($plugins->$name->good, $plugins->$name->bad));
+                Logger::addCheck($extensionPath, $name);
                 Logger::registerCheck($extensionPath, $name);
                 $plugin->execute($extensionPath);
             }

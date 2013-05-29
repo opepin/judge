@@ -19,11 +19,11 @@ class Git extends Source implements SourceInterface
      */
     public function copy($target, $branch = self::GIT_DEFAULT_BRANCH)
     {
-        if (!Source::isGitRepo($this->source)) {
-            throw new Exception('Provided source is not a Git repository: ' . $this->source);
+        if (!Source::isGitRepo($this->_source)) {
+            throw new Exception('Provided source is not a Git repository: ' . $this->_source);
         }
 
-        $this->_cloneRepository($this->source, $target);
+        $this->_cloneRepository($this->_source, $target);
 
         if ((null !== $branch) && (self::GIT_DEFAULT_BRANCH !== $branch)) {
             $this->_checkout($target, $branch);

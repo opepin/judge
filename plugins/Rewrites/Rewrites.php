@@ -1,81 +1,111 @@
 <?php
 namespace Rewrites;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
 /**
  * count Magento core rewrites
  */
-class Rewrites extends Plugin implements JudgePlugin
+class Rewrites extends Plugin
 {
-    protected $config;
-    protected $extensionPath;
-    protected $settings;
-    protected $rewrites=array();
-
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
-    }
-
+    /**
+     * @param $extensionPath
+     */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
+        parent::execute($extensionPath);
 
         $command = sprintf('find "%s" -name config.xml', $extensionPath);
         try {
             $configFiles = $this->_executeCommand($command);
         } catch (\Zend_Exception $e) {
-            return $this->settings->unfinished;
+            return;
         }
 
-        $types = array('blocks', 'models');
+        $rewrites = array();
+        $xpathFormat = '/config/global/%s//rewrite/..';
+        $groupTypes = array('blocks', 'models', 'helpers');
         foreach ($configFiles as $configFile) {
-            foreach ($types as $type) {
-                $this->findRewrites($configFile, $type);
+            $config = simplexml_load_file($configFile);
+            foreach ($groupTypes as $groupType) {
+                foreach ($config->xpath(sprintf($xpathFormat, $groupType)) as $groupRewrites) {
+                    $group = $groupRewrites->getName();
+                    foreach ($groupRewrites->rewrite->children() as $class => $rewrite) {
+                        $classId = $group . '/' . $class;
+                        $rewrites = array_merge_recursive($rewrites, array(
+                            $this->_getIssueType($classId, $groupType) => array(
+                                $groupType => array(
+                                    array(
+                                        'from' => $classId,
+                                        'to'   => (string) $rewrite
+                                    )
+                                )
+                            )
+                        ));
+                    }
+                }
+            }
+
+            // controller rewrite
+            $xpath = '/config/*[name()="frontend" or name()="admin"]/routers/*/args/modules/*[@before]';
+            foreach ($config->xpath($xpath) as $rewrite) {
+                $moduleName = $rewrite['before'];
+                /** @var \SimpleXMLElement $area */
+                list($area) = $rewrite ->xpath('ancestor::*[position()=5]');
+                $rewrites = array_merge_recursive($rewrites, array(
+                    $this->_getIssueType($moduleName, 'controller') => array(
+                        'controller' => array(
+                            array(
+                                'from' => (string) $moduleName,
+                                'to'   => (string) $rewrite,
+                                'area' => $area->getName()
+                            )
+                        )
+                    )
+                ));
             }
         }
 
-        foreach ($this->rewrites as $rewrite) {
-            list($type, $code) = explode('s:', $rewrite);
-            $typePrefix = $this->isCritical($rewrite) ? 'critical_' : '';
-                IssueHandler::addIssue(new Issue( array( 
-                    "extension" =>  $extensionPath,
-                    "checkname" => $this->_pluginName,
-                    "type"      => $typePrefix . $type . '_rewrite',
-                    "comment"   => $code,
-                    "failed"    =>  true
+        // make critical issue to be first
+        ksort($rewrites);
+        foreach ($rewrites as $type => $groups) {
+            foreach ($groups as $group => $items) {
+                $comment = sprintf('Found %d %s %s(s):' . PHP_EOL,
+                    count($items), rtrim($group, 's'), str_replace('_', ' ', $type));
+                foreach ($items as $item) {
+                    $comment .= self::OCCURRENCES_LIST_PREFIX
+                        . (isset($item['area']) ? sprintf('%s area - ', ucfirst($item['area'])) : '')
+                        . sprintf('%s => %s', $item['from'], $item['to'])
+                        . self::OCCURRENCES_LIST_SUFFIX;
+                }
+                IssueHandler::addIssue(new Issue(array(
+                    'extension'   => $extensionPath,
+                    'checkname'   => $this->_pluginName,
+                    'type'        => $type,
+                    'comment'     => trim($comment),
+                    'failed'      => true,
+                    'occurrences' => count($items),
                 )));
-        }
-    }
-
-    protected function findRewrites($configFile, $type)
-    {
-        $xpath = '/config/global/' . $type . '//rewrite/..';
-        $config = simplexml_load_file($configFile);
-        foreach ($config->xpath($xpath) as $moduleRewrites) {
-            $module = $moduleRewrites->getName();
-            foreach ($moduleRewrites->rewrite->children() as $path=>$class) {
-                $this->rewrites[] = $type . ':' . $module . '/' . $path;
             }
         }
     }
 
-    protected function isCritical($rewrite)
+    /**
+     * @param string $groupType (model|block|helper|controller)
+     * @param string $classId slash separated class identifier,
+     *  ex. group/class or module name for controller
+     * @return string 'critical_rewrite'|'rewrite'
+     */
+    protected function _getIssueType($classId, $groupType)
     {
-        $critical = $this->settings->critical->toArray();
-        list($type, $code) = explode(':', $rewrite);
-        if (false == is_array($critical[$type])) {
-            return false;
-        }
-        return in_array($code, $critical[$type]);
+        $critical = $this->_settings->critical->toArray();
+        return (!empty($critical[$groupType])
+            && is_array($critical[$groupType])
+            && in_array($classId, $critical[$groupType]))
+                ? 'critical_rewrite' : 'rewrite';
     }
 }
 

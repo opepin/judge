@@ -15,20 +15,20 @@ $evaluator->run();
 
 class InheritanceEvaluator
 {
-    protected $classes = array();
-    protected $parents = array();
-    protected $magento = array();
-    protected $baseDir;
+    protected $_classes = array();
+    protected $_parents = array();
+    protected $_magento = array();
+    protected $_baseDir;
 
     public function setBaseDir($baseDir)
     {
-        $this->baseDir = $baseDir;
+        $this->_baseDir = $baseDir;
     }
 
     public function run()
     {
-        if (false == file_exists($this->baseDir . '/graphs')) {
-            mkdir($this->baseDir . '/graphs');
+        if (false == file_exists($this->_baseDir . '/graphs')) {
+            mkdir($this->_baseDir . '/graphs');
         }
         $dotfiles = array();
         $query = '
@@ -52,65 +52,65 @@ class InheritanceEvaluator
             $parentName = $inheritance->parentClassName;
             $mage       = $inheritance->mage;
 
-            if (false === array_key_exists($inheritance->magentoId, $this->magento)) {
-                $this->classes[$inheritance->magentoId] = $mage;
+            if (false === array_key_exists($inheritance->magentoId, $this->_magento)) {
+                $this->_classes[$inheritance->magentoId] = $mage;
             }
-            if (false === array_key_exists($mage, $this->classes)) {
-                $this->classes[$mage] = array();
+            if (false === array_key_exists($mage, $this->_classes)) {
+                $this->_classes[$mage] = array();
             }
-            if (false === array_key_exists($mage, $this->parents)) {
-                $this->parents[$mage] = array();
+            if (false === array_key_exists($mage, $this->_parents)) {
+                $this->_parents[$mage] = array();
             }
-            if (false === array_key_exists($childName, $this->classes)) {
-                $this->classes[$mage][$childName] = new Klass($childName);
+            if (false === array_key_exists($childName, $this->_classes)) {
+                $this->_classes[$mage][$childName] = new Klass($childName);
             }
-            $this->classes[$mage][$childName]->setId($inheritance->classId);
-            $this->classes[$mage][$childName]->setMagentoId($inheritance->magentoId);
-            $this->classes[$mage][$childName]->setDefinition($inheritance->definition);
+            $this->_classes[$mage][$childName]->setId($inheritance->classId);
+            $this->_classes[$mage][$childName]->setMagentoId($inheritance->magentoId);
+            $this->_classes[$mage][$childName]->setDefinition($inheritance->definition);
 
             /* remove child from main parent array, if a class inherits from another one */
-            if (array_key_exists($childName, $this->parents)) {
-                unset($this->parents[$childName]);
+            if (array_key_exists($childName, $this->_parents)) {
+                unset($this->_parents[$childName]);
             }
 
             $parentName = trim(preg_replace('/implements.*$/s', '', $parentName));
             $parentName = trim(preg_replace('/[^A-Za-z0-9_]/', '', $parentName));
             if (0 < strlen($parentName)) {
 
-                $dotfile = $this->baseDir . '/graphs/inheritance_' . $inheritance->mage . '.dot';
+                $dotfile = $this->_baseDir . '/graphs/inheritance_' . $inheritance->mage . '.dot';
                 if (false == file_exists($dotfile)) {
                     file_put_contents($dotfile, 'digraph G {' . PHP_EOL);
                     $dotfiles[] = $dotfile;
                 }
-                if (false === array_key_exists($parentName, $this->classes[$mage])) {
-                    $this->classes[$mage][$parentName] = new Klass($parentName);
-                    $this->classes[$mage][$parentName]->setDefinition($inheritance->parentClassName);
-                    $this->parents[$mage][$parentName] = $this->classes[$mage][$parentName];
+                if (false === array_key_exists($parentName, $this->_classes[$mage])) {
+                    $this->_classes[$mage][$parentName] = new Klass($parentName);
+                    $this->_classes[$mage][$parentName]->setDefinition($inheritance->parentClassName);
+                    $this->_parents[$mage][$parentName] = $this->_classes[$mage][$parentName];
                 }
                 file_put_contents($dotfile, $parentName . ' -> ' . $childName . ';' . PHP_EOL, FILE_APPEND);
-                $parentClass = $this->classes[$mage][$parentName];
-                $childClass  = $this->classes[$mage][$childName];
+                $parentClass = $this->_classes[$mage][$parentName];
+                $childClass  = $this->_classes[$mage][$childName];
                 $parentClass->addChild($childClass);
             }
         }
         foreach ($dotfiles as $dotfile) {
             file_put_contents($dotfile, '}', FILE_APPEND);
         }
-        foreach($this->parents as $mage=>$parents) {
+        foreach($this->_parents as $mage=>$parents) {
             foreach($parents as $parent) {
-                $this->saveInheritedMethods($parent);
+                $this->_saveInheritedMethods($parent);
             }
         }
     }
 
-    protected function saveInheritedMethods($class, $parentMethods=array())
+    protected function _saveInheritedMethods($class, $parentMethods=array())
     {
         $methods = array();
-        if (false == $this->isBuiltinClass($class->getName())) {
+        if (false == $this->_isBuiltinClass($class->getName())) {
             if (is_null($class->getId())) {
                 echo "Found {$class->getName()} to be parent class for {$class->getChildrenCount()} classes, but it does not exist at all!" . php_eol;
                 foreach ($class->getchildren() as $child) {
-                    echo "* {$child->getName()} in magento {$this->magento[$class->getmagentoid()]}" . PHP_EOL;
+                    echo "* {$child->getName()} in magento {$this->_magento[$class->getmagentoid()]}" . PHP_EOL;
                 }
                 return;
             }
@@ -139,11 +139,11 @@ class InheritanceEvaluator
                     $class->getMagentoId()
                 );
             }
-            $this->saveInheritedMethods($child, array_merge($methods, $parentMethods));
+            $this->_saveInheritedMethods($child, array_merge($methods, $parentMethods));
         }
     }
 
-    protected function isBuiltinClass($name)
+    protected function _isBuiltinClass($name)
     {
         $builtinClasses = array(
             'ArrayObject',
@@ -177,61 +177,61 @@ class InheritanceEvaluator
 
 class Klass
 {
-    protected $name;
-    protected $definition;
-    protected $id;
-    protected $magentoId;
-    protected $children=array();
+    protected $_name;
+    protected $_definition;
+    protected $_id;
+    protected $_magentoId;
+    protected $_children=array();
 
     public function __construct($name)
     {
-        $this->name = $name;
+        $this->_name = $name;
     }
 
     public function getName()
     {
-        return $this->name;
+        return $this->_name;
     }
 
     public function addChild(Klass $child)
     {
-        $this->children[$child->getName()] = $child;
+        $this->_children[$child->getName()] = $child;
     }
 
     public function setId($id)
     {
-        $this->id = $id;
+        $this->_id = $id;
     }
 
     public function setDefinition($definition)
     {
-        $this->definition = $definition;
+        $this->_definition = $definition;
     }
 
     public function getId()
     {
-        return $this->id;
+        return $this->_id;
     }
 
     public function setMagentoId($magentoId)
     {
-        $this->magentoId = $magentoId;
+        $this->_magentoId = $magentoId;
     }
 
     public function getMagentoId()
     {
-        return $this->magentoId;
+        return $this->_magentoId;
     }
 
     public function getChildren()
     {
-        return $this->children;
+        return $this->_children;
     }
 
     public function getChildrenCount()
     {
-        $count = count($this->children);
-        foreach ($this->children as $child) {
+        $count = count($this->_children);
+        foreach ($this->_children as $child) {
             $count += $child->getChildrenCount();
         }
         return $count;

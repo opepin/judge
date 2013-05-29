@@ -6,38 +6,38 @@ use Netresearch\Logger;
 
 class Extension extends Config
 {
-    protected $extensionPath;
+    protected $_extensionPath;
 
-    protected $usedClasses;
-    protected $usedMethods;
+    protected $_usedClasses;
+    protected $_usedMethods;
 
-    protected $databaseChanges;
-    protected $tables;
+    protected $_databaseChanges;
+    protected $_tables;
 
-    protected $phpMethods;
+    protected $_phpMethods;
 
     /** @var mixed $methods Array of methods defined in this extension */
-    protected $methods;
+    protected $_methods;
 
     public function __construct($extensionPath)
     {
-        $this->extensionPath = $extensionPath;
+        $this->_extensionPath = $extensionPath;
     }
 
     public function getUsedMagentoMethods()
     {
-        $this->usedMethods = new Methods();
-        $this->addMethods($this->extensionPath);
-        return $this->usedMethods;
+        $this->_usedMethods = new Methods();
+        $this->_addMethods($this->_extensionPath);
+        return $this->_usedMethods;
     }
 
     public function getUsedMagentoClasses()
     {
-        $this->usedClasses = new Klasses();
+        $this->_usedClasses = new Klasses();
 
         $extendsToken = 'extends';
         $extendedClassesRegexp = '/^class .* extends ([a-zA-Z0-9_].*)\W/mU';
-        $this->addClassesByRegexp($extendsToken, $extendedClassesRegexp);
+        $this->_addClassesByRegexp($extendsToken, $extendedClassesRegexp);
 
         $factoryTypes = array(
             'Block'         => 'Block',
@@ -46,15 +46,15 @@ class Extension extends Config
         );
         foreach ($factoryTypes as $factoryType=>$filePathPattern) {
             $factoryRegexp = '/Mage\W*::\W*get' . $factoryType . '\W*\(\W*["\'](.*)["|\']\"*\)/mU';
-            $this->addClassesByRegexp($factoryType, $factoryRegexp, $filePathPattern);
+            $this->_addClassesByRegexp($factoryType, $factoryRegexp, $filePathPattern);
         }
 
-        return $this->usedClasses;
+        return $this->_usedClasses;
     }
 
-    protected function addClassesByRegexp($token, $regexp, $filePathPattern=null)
+    protected function _addClassesByRegexp($token, $regexp, $filePathPattern=null)
     {
-        $command = 'grep -rEl "' . $token . '" ' . $this->extensionPath . '/app';
+        $command = 'grep -rEl "' . $token . '" ' . $this->_extensionPath . '/app';
         exec($command, $filesWithThatToken, $return);
 
         if (0 == count($filesWithThatToken)) {
@@ -62,37 +62,37 @@ class Extension extends Config
         }
 
         foreach ($filesWithThatToken as $filePath) {
-            if ($this->isUnitTestFile($filePath)) {
+            if ($this->_isUnitTestFile($filePath)) {
                 continue;
             }
             $content = file_get_contents($filePath);
             preg_match($regexp, $content, $detailedMatches);
             if (1 < count($detailedMatches)) {
                 $class = new Klass($detailedMatches[1], str_replace('/', '_', $filePathPattern));
-                if ($class->isExtensionClass($detailedMatches[1], $filePathPattern, $this->extensionPath)) {
+                if ($class->isExtensionClass($detailedMatches[1], $filePathPattern, $this->_extensionPath)) {
                     continue;
                 }
-                $this->usedClasses->add($class);
+                $this->_usedClasses->add($class);
             }
         }
     }
 
-    protected function isUnitTestFile($filePath)
+    protected function _isUnitTestFile($filePath)
     {
-        $filePath = str_replace($this->extensionPath, '', $filePath);
+        $filePath = str_replace($this->_extensionPath, '', $filePath);
         return (0 < preg_match('~app/code/.*/.*/Test/~u', $filePath) || 0 < preg_match('~tests~u', $filePath));
     }
 
-    protected function addMethods($path)
+    protected function _addMethods($path)
     {
         $parser = new \PHPParser_Parser(new \PHPParser_Lexer);
         foreach (glob($path . '/*') as $item) {
             if (is_dir($item)) {
-                $this->addMethods($item);
+                $this->_addMethods($item);
             }
             if (is_file($item) && is_readable($item)) {
 
-                if ($this->isUnitTestFile($item)) {
+                if ($this->_isUnitTestFile($item)) {
                     continue;
                 }
                 /* we assume that there are only php files */
@@ -114,7 +114,7 @@ class Extension extends Config
                     }
                     else {
 //                        file_put_contents($item . '.stmts.xml', var_export($xml, true));
-                        $numberOfMethodCalls = $this->collectMethodCalls(
+                        $numberOfMethodCalls = $this->_collectMethodCalls(
                             $stmts,
                             simplexml_load_string($xml)
                         );
@@ -128,7 +128,7 @@ class Extension extends Config
         }
     }
 
-    protected function getResultType(\SimpleXMLElement $node, $debug=false)
+    protected function _getResultType(\SimpleXMLElement $node, $debug=false)
     {
         $type = Method::TYPE_MIXED;
         if ($node->xpath('./node:Expr_StaticCall')) {
@@ -144,11 +144,11 @@ class Extension extends Config
                 }
                 $firstArgument = current($firstArgument->xpath('./node:Scalar_String/subNode:value/scalar:string/text()'));
                 if (in_array($method, array('getModel', 'getSingleton'))) {
-                    $type = $this->getClassName('model', $firstArgument);
+                    $type = $this->_getClassName('model', $firstArgument);
                 } elseif ('getBlock' == $method) {
-                    $type = $this->getClassName('block', $firstArgument);
+                    $type = $this->_getClassName('block', $firstArgument);
                 } elseif ('helper' == $method) {
-                    $type = $this->getClassName('helper', $firstArgument);
+                    $type = $this->_getClassName('helper', $firstArgument);
                 }
             } elseif ($class && current($class) == 'parent') {
                 /* @TODO: get return type of parent method */
@@ -156,10 +156,10 @@ class Extension extends Config
         } elseif ($node->xpath('./node:Name')) {
             $type = current(current($node->xpath('./node:Name/subNode:parts/scalar:array/scalar:string/text()')));
             if ('parent' == $type) {
-                return $this->getParentClass($node);
+                return $this->_getParentClass($node);
             }
         } elseif ($node->xpath('./node:Expr_Variable')) {
-            $type = $this->getTypeOfVariable($node);
+            $type = $this->_getTypeOfVariable($node);
         } elseif ($node->xpath('./node:Scalar_String')) {
             $type = Method::TYPE_STRING;
         } elseif ($node->xpath('./node:Expr_New')) {
@@ -171,7 +171,7 @@ class Extension extends Config
                 $assignedVar = (string) current($node->xpath('./node:Expr_MethodCall/../../subNode:var/node:Expr_Variable/subNode:name/scalar:string/text()'));
                 // avoid infinity loops due to recursion
                 if ($caller != $assignedVar) {
-                    $type = $this->getResultType(current($node->xpath('./node:Expr_MethodCall/subNode:var')));
+                    $type = $this->_getResultType(current($node->xpath('./node:Expr_MethodCall/subNode:var')));
                 }
             } elseif ('get' === substr($methodName, 0, 3) && 'Id' === substr($methodName, -2)) {
                 $type = Method::TYPE_INT;
@@ -181,7 +181,7 @@ class Extension extends Config
         return $type;
     }
 
-    protected function getParentClass($node)
+    protected function _getParentClass($node)
     {
         $extends = $node->xpath('./ancestor::node:Stmt_Class/subNode:extends/node:Name/subNode:parts/scalar:array/scalar:string/text()');
         if ($extends && 0 < count($extends)) {
@@ -196,7 +196,7 @@ class Extension extends Config
      * @param SimpleXMLElement $node
      * @return string
      */
-    protected function getTypeOfVariable($node)
+    protected function _getTypeOfVariable($node)
     {
         $type = Method::TYPE_MIXED;
         $variableName = current($node->xpath('./node:Expr_Variable/subNode:name/scalar:string/text()'));
@@ -213,7 +213,7 @@ class Extension extends Config
         }
 
         $definedInLine = 0;
-        $lastAssignment = $this->getLastAssignment($currentMethod, $variableName, $usedInLine);
+        $lastAssignment = $this->_getLastAssignment($currentMethod, $variableName, $usedInLine);
         if (is_array($lastAssignment)) {
             $definedInLine = key($lastAssignment);
             $type = current($lastAssignment);
@@ -241,7 +241,7 @@ class Extension extends Config
      * @param string           $variableName
      * @return array(line => type) || NULL
      */
-    protected function getLastAssignment(\SimpleXMLElement $method, $variableName, $usedInLine)
+    protected function _getLastAssignment(\SimpleXMLElement $method, $variableName, $usedInLine)
     {
         $variableDefinitionXpath = sprintf(
             './descendant::node:Expr_Assign[subNode:var/node:Expr_Variable/subNode:name/scalar:string/text() = "%s"]',
@@ -261,14 +261,14 @@ class Extension extends Config
             }
         }
         if (false == is_null($lastAssignment)) {
-            return array($lastAssignmentLine => $this->getResultType(current($lastAssignment->xpath('./subNode:expr'))));
+            return array($lastAssignmentLine => $this->_getResultType(current($lastAssignment->xpath('./subNode:expr'))));
         }
     }
 
-    protected function getClassName($type, $identifier)
+    protected function _getClassName($type, $identifier)
     {
         $className = Method::TYPE_MIXED;
-        $configFiles = glob($this->extensionPath . '/app/code/*/*/*/etc/config.xml');
+        $configFiles = glob($this->_extensionPath . '/app/code/*/*/*/etc/config.xml');
         foreach ($configFiles as $configFile) {
             $extensionConfig = simplexml_load_file($configFile);
             if (false !== strpos($identifier, '/')) {
@@ -299,7 +299,7 @@ class Extension extends Config
      * @param PHPParser_Node_Stmt $stmt
      * @return int Number of called methods
      */
-    protected function collectMethodCalls($stmt, $xmlTree)
+    protected function _collectMethodCalls($stmt, $xmlTree)
     {
         $numberOfMethodCalls = 0;
         $methodCallXPath = '//node:Expr_MethodCall | //node:Expr_StaticCall';
@@ -315,32 +315,32 @@ class Extension extends Config
             }
 
             $variable = current($call->xpath('./subNode:var | ./subNode:class'));
-            $object = $this->getResultType($variable);
+            $object = $this->_getResultType($variable);
             if (false == $object) {
                 continue;
             }
 
-            if ($this->isPhpMethod($object, $methodName)) {
+            if ($this->_isPhpMethod($object, $methodName)) {
                 continue;
             }
 
-            if ($this->isCallabilityChecked($call, $object, $methodName)) {
+            if ($this->_isCallabilityChecked($call, $object, $methodName)) {
                 Logger::addComment(
-                    $this->extensionPath,
+                    $this->_extensionPath,
                     'MageCompatibility',
                     sprintf('<info>Found version switch</info> for %s::%s', $object, $methodName)
                 );
                 continue;
             }
 
-            if (false == $this->isExtensionMethod($object, $methodName)) {
+            if (false == $this->_isExtensionMethod($object, $methodName)) {
                 $method = new Method(
                     (string) $methodName,
-                    $this->getArgs($call),
+                    $this->_getArgs($call),
                     array('class' => $object)
                 );
                 ++$numberOfMethodCalls;
-                $this->usedMethods->add($method);
+                $this->_usedMethods->add($method);
             }
         }
         return $numberOfMethodCalls;
@@ -352,28 +352,28 @@ class Extension extends Config
      * @param SimpleXMLElement $call Method call
      * @return array
      */
-    protected function getArgs(\SimpleXMLElement $call)
+    protected function _getArgs(\SimpleXMLElement $call)
     {
         $args = $call->xpath('./subNode:args/scalar:array/node:Arg/subNode:value');
         foreach ($args as $pos=>$arg) {
-            $args[$pos] = $this->getResultType($arg, true);
+            $args[$pos] = $this->_getResultType($arg, true);
         }
 
         return $args;
     }
 
-    protected function isPhpMethod($class, $method)
+    protected function _isPhpMethod($class, $method)
     {
         $method = strtolower((string) $method);
-        if (is_null($this->phpMethods)) {
-            $this->phpMethods = array();
+        if (is_null($this->_phpMethods)) {
+            $this->_phpMethods = array();
             exec('php -r "echo implode(PHP_EOL, get_declared_classes());"', $output);
             foreach ($output as $definedClass) {
-                $this->phpMethods[$definedClass] = get_class_methods($definedClass);
+                $this->_phpMethods[$definedClass] = get_class_methods($definedClass);
             }
         }
-        if (array_key_exists($class, $this->phpMethods)) {
-            foreach ($this->phpMethods[$class] as $phpMethod) {
+        if (array_key_exists($class, $this->_phpMethods)) {
+            foreach ($this->_phpMethods[$class] as $phpMethod) {
                 if ($method == strtolower($phpMethod)) {
                     return true;
                 }
@@ -390,7 +390,7 @@ class Extension extends Config
      * @param string $methodName     method name
      * @return void
      */
-    protected function isCallabilityChecked($call, $variable, $methodName)
+    protected function _isCallabilityChecked($call, $variable, $methodName)
     {
         $xpath = sprintf('./ancestor::node:Stmt_If/subNode:cond/node:Expr_FuncCall[subNode:name/node:Name/subNode:parts/scalar:array/scalar:string/text() = "is_callable"]/subNode:args/scalar:array/node:Arg/subNode:value/node:Scalar_String/subNode:value/scalar:string[text() = "%s"]', "$variable::$methodName");
         return (count($call->xpath($xpath)));
@@ -403,9 +403,9 @@ class Extension extends Config
      * @param string $methodName
      * @return boolean
      */
-    protected function isExtensionMethod($className, $methodName)
+    protected function _isExtensionMethod($className, $methodName)
     {
-        $classPath = current(glob($this->extensionPath . '/app/code/*/' . str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php'));
+        $classPath = current(glob($this->_extensionPath . '/app/code/*/' . str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php'));
         if (file_exists($classPath)) {
             /*if ($this->isExtensionDatabaseAccessor($className, $methodName)) {
                 return true;
@@ -426,11 +426,11 @@ class Extension extends Config
      * @param string $methodName
      * @return boolean
      */
-    protected function isExtensionDatabaseAccessor($className, $methodName)
+    protected function _isExtensionDatabaseAccessor($className, $methodName)
     {
         if (3 < strlen($methodName) && in_array(substr($methodName, 0, 3), array('get', 'set', 'uns', 'has'))) {
-            $fieldName = $this->getFieldNameForAccessor($methodName);
-            $changes = $this->getDatabaseChanges();
+            $fieldName = $this->_getFieldNameForAccessor($methodName);
+            $changes = $this->_getDatabaseChanges();
             if (false === array_key_exists('add', $changes)) {
                 return false;
             }
@@ -446,24 +446,24 @@ class Extension extends Config
                 $tableName = $table;
                 break;
             }
-            if (false == is_null($tableName) && $this->getTableForClass($className) === $tableName) {
+            if (false == is_null($tableName) && $this->_getTableForClass($className) === $tableName) {
                 return true;
             }
         }
         return false;
     }
 
-    protected function getTableForClass($className)
+    protected function _getTableForClass($className)
     {
-        if (is_null($this->tables)) {
-            $this->tables = $this->getTables($this->extensionPath);
+        if (is_null($this->_tables)) {
+            $this->_tables = $this->_getTables($this->_extensionPath);
         }
-        if (array_key_exists($className, $this->tables)) {
-            return $this->tables[$className];
+        if (array_key_exists($className, $this->_tables)) {
+            return $this->_tables[$className];
         }
     }
 
-    protected function getFieldNameForAccessor($methodName)
+    protected function _getFieldNameForAccessor($methodName)
     {
         return strtolower(implode('_', preg_split('/(?<=\\w)(?=[A-Z])/', substr($methodName, 3))));
     }
@@ -475,19 +475,19 @@ class Extension extends Config
      */
     public function getMethods()
     {
-        if (is_null($this->methods)) {
-            $this->methods = array();
-            $command = sprintf( 'grep -oriE " function ([a-zA-Z0-9_]*)" %s', $this->extensionPath . '/app/code/');
+        if (is_null($this->_methods)) {
+            $this->_methods = array();
+            $command = sprintf( 'grep -oriE " function ([a-zA-Z0-9_]*)" %s', $this->_extensionPath . '/app/code/');
             exec($command, $output);
             foreach ($output as $line) {
                 if (false === strpos($line, ':')) {
                     continue;
                 }
                 list($path, $method) = explode(':', $line);
-                $this->methods[trim(str_replace('function', '', $method))] = trim(substr_replace($this->extensionPath, '', $path));
+                $this->_methods[trim(str_replace('function', '', $method))] = trim(substr_replace($this->_extensionPath, '', $path));
             }
         }
-        return $this->methods;
+        return $this->_methods;
     }
 
     /**
@@ -504,16 +504,16 @@ class Extension extends Config
     /**
      * determine database changes made in sql install and/or update scripts
      */
-    protected function getDatabaseChanges()
+    protected function _getDatabaseChanges()
     {
-        if (is_null($this->databaseChanges)) {
-            $this->databaseChanges = array();
-            $scripts = glob($this->extensionPath . '/app/code/*/*/*/sql/*/mysql*');
+        if (is_null($this->_databaseChanges)) {
+            $this->_databaseChanges = array();
+            $scripts = glob($this->_extensionPath . '/app/code/*/*/*/sql/*/mysql*');
             foreach ($scripts as $script) {
                 $setup = new Extension\Setup($script);
-                $this->databaseChanges = array_merge_recursive($this->databaseChanges, $setup->getChanges());
+                $this->_databaseChanges = array_merge_recursive($this->_databaseChanges, $setup->getChanges());
             }
         }
-        return $this->databaseChanges;
+        return $this->_databaseChanges;
     }
 }

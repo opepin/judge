@@ -5,24 +5,19 @@ use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\PluginInterface as JudgePlugin;
 use Netresearch\Plugin as Plugin;
 
-class CheckStyle extends Plugin implements JudgePlugin
+class CheckStyle extends Plugin
 {
-    protected $config;
-    protected $settings;
-    protected $results;
-    protected $uniqueIssues = array(
+    protected $_results;
+    protected $_uniqueIssues = array(
         'errors'    => array(),
         'warnings'  => array()
     );
 
     public function __construct(Config $config)
     {
-        $this->config = $config;
-        $this->_pluginName   = current(explode('\\', __CLASS__));
-        $this->settings = $this->config->plugins->{$this->_pluginName};
+        parent::__construct($config);
         $this->_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
     }
 
@@ -32,26 +27,26 @@ class CheckStyle extends Plugin implements JudgePlugin
      */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
+        parent::execute($extensionPath);
 
         $params = array(
             'ignore' => '*/jquery*',
-            'standard' => $this->settings->standardToUse
+            'standard' => $this->_settings->standardToUse
         );
 
         try {
-            $csResults = $this->_executePhpCommand($this->config, $params);
+            $csResults = $this->_executePhpCommand($this->_config, $params);
         } catch (\Zend_Exception $e) {
-            return $this->settings->unfinished;
+            return;
         }
 
-        $csResults = $this->getClearedResults($csResults);
+        $csResults = $this->_getClearedResults($csResults);
         // more issues found than allowed -> log them
-        if ($this->settings->allowedIssues < sizeof($csResults)) {
+        if ($this->_settings->allowedIssues < sizeof($csResults)) {
             foreach ($csResults as $issue) {
-                $this->addToUniqueIssues($issue);
+                $this->_addToUniqueIssues($issue);
             }
-            $this->logUniqueIssues();
+            $this->_logUniqueIssues();
         }
     }
 
@@ -62,7 +57,7 @@ class CheckStyle extends Plugin implements JudgePlugin
      * @param array $results
      * @return array the
      */
-    protected function getClearedResults(array $results)
+    protected function _getClearedResults(array $results)
     {
         $newResults = array();
         foreach ($results as $resultLine) {
@@ -81,7 +76,7 @@ class CheckStyle extends Plugin implements JudgePlugin
      *
      * @param string $issue
      */
-    protected function addToUniqueIssues($issue)
+    protected function _addToUniqueIssues($issue)
     {
         $issueData = explode('|', $issue);
         if (3 == count($issueData)) {
@@ -94,14 +89,14 @@ class CheckStyle extends Plugin implements JudgePlugin
                     strpos($issueMessage, ';')
                 );
             }
-            if (false === array_key_exists($issueClass, $this->uniqueIssues)) {
-                $this->uniqueIssues[$issueClass] = array();
+            if (false === array_key_exists($issueClass, $this->_uniqueIssues)) {
+                $this->_uniqueIssues[$issueClass] = array();
             }
-            if (false === array_key_exists($issueMessage, $this->uniqueIssues[$issueClass])) {
-                $this->uniqueIssues[$issueClass][$issueMessage] = 1;
+            if (false === array_key_exists($issueMessage, $this->_uniqueIssues[$issueClass])) {
+                $this->_uniqueIssues[$issueClass][$issueMessage] = 1;
             }
-            if (true === array_key_exists($issueMessage, $this->uniqueIssues[$issueClass])) {
-                $this->uniqueIssues[$issueClass][$issueMessage] ++;
+            if (true === array_key_exists($issueMessage, $this->_uniqueIssues[$issueClass])) {
+                $this->_uniqueIssues[$issueClass][$issueMessage] ++;
             }
         }
     }
@@ -109,9 +104,9 @@ class CheckStyle extends Plugin implements JudgePlugin
     /**
      * creates a summaritze of the unique issues
      */
-    protected function logUniqueIssues()
+    protected function _logUniqueIssues()
     {
-        foreach ($this->uniqueIssues as $issueType => $uniqueIssues) {
+        foreach ($this->_uniqueIssues as $issueType => $uniqueIssues) {
             foreach ($uniqueIssues as $message => $count) {
                 IssueHandler::addIssue(new Issue(
                         array(

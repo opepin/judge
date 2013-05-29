@@ -9,10 +9,10 @@ dibi::connect(array(
 	'database' => 'judge'
 ));
 
-if (count($argv) < 2) {
+if (count($_SERVER['argv']) < 2) {
     die('Please submit tag file path to the tag file.' . PHP_EOL);
 }
-$tagFileName = $argv[1];
+$tagFileName = $_SERVER['argv'][1];
 if (false == file_exists($tagFileName)) {
     die('Please submit the correct(!) tag file path to the tag file.' . PHP_EOL);
 }
@@ -22,25 +22,25 @@ $parser->run();
 
 class TagParser
 {
-    protected $tagFileName;
+    protected $_tagFileName;
 
-    protected $version;
-    protected $edition;
-    protected $magentoId;
+    protected $_version;
+    protected $_edition;
+    protected $_magentoId;
 
-    protected $knownClasses=array();
+    protected $_knownClasses = array();
 
     public function __construct($tagFileName) {
-        $this->tagFileName = $tagFileName;
+        $this->_tagFileName = $tagFileName;
     }
 
     public function run()
     {
         $startedAt = time();
-        $tagFile = fopen($this->tagFileName, 'r');
-        $tagFileNameWithoutExt = str_replace('.tags', '', basename($this->tagFileName));
+        $tagFile = fopen($this->_tagFileName, 'r');
+        $tagFileNameWithoutExt = str_replace('.tags', '', basename($this->_tagFileName));
         list($edition, $this->version) = explode('-', $tagFileNameWithoutExt);
-        $this->edition = ucfirst(substr($edition, 0, 1)) . 'E';
+        $this->_edition = ucfirst(substr($edition, 0, 1)) . 'E';
         $types = array(
             'c' => 'addClass',     // classes
             'i' => 'addInterface', // interfaces
@@ -54,7 +54,7 @@ class TagParser
         );
 
         $done = 0;
-        exec('wc -l ' . $this->tagFileName, $wcOut);
+        exec('wc -l ' . $this->_tagFileName, $wcOut);
         $lines = (int) current($wcOut);
         $ignore = 0;
         foreach ($types as $currentType=>$call) {
@@ -84,10 +84,10 @@ class TagParser
 
                 if ($currentType == $type) {
                     dibi::begin();
-                    $this->$call($tag, $path, trim($codeLine));
+                    $this->{"_$call"}($tag, $path, trim($codeLine));
                     dibi::commit();
                     ++$done;
-                    $called = $call;
+                    $called = ltrim($call, '_');
                 } else {
                     $called = "(skip $type)";
                 }
@@ -124,7 +124,7 @@ class TagParser
      * @param mixed $codeLine
      * @return void
      */
-    protected function addClass($name, $path, $codeLine)
+    protected function _addClass($name, $path, $codeLine)
     {
         $data = array('name' => $name, 'path' => $path);
         $classData = dibi::fetch('
@@ -138,7 +138,7 @@ class TagParser
             $path
         );
         if (false === $classData || 0 == $classData->signatureId) {
-            $signatureId = $this->createSignature('c', $codeLine, $path);
+            $signatureId = $this->_createSignature('c', $codeLine, $path);
             if (false === $classData) {
                 dibi::query('INSERT INTO [classes] %v', $data);
                 $classId = dibi::getInsertId();
@@ -152,12 +152,12 @@ class TagParser
         } else {
             $signatureId = $classData->signatureId;
         }
-        $this->assignSignatureToMagento($signatureId);
+        $this->_assignSignatureToMagento($signatureId);
     }
 
-    protected function addInterface($name, $path, $codeLine)
+    protected function _addInterface($name, $path, $codeLine)
     {
-        $this->addClass($name, $path, $codeLine);
+        $this->_addClass($name, $path, $codeLine);
     }
 
     /**
@@ -168,13 +168,13 @@ class TagParser
      * @param mixed $codeLine
      * @return void
      */
-    protected function addConstant($name, $path, $codeLine)
+    protected function _addConstant($name, $path, $codeLine)
     {
         $data = array('name' => $name);
         $className = $this->getClassNameForPath($path);
-        $classId   = $this->fetchClassId($className);
+        $classId   = $this->_fetchClassId($className);
         $constants = dibi::query('SELECT * FROM [constants] c WHERE name = %s', $name)->fetchAll();
-        $signatureId = $this->fetchSignatureId('d', trim($codeLine), $path);
+        $signatureId = $this->_fetchSignatureId('d', trim($codeLine), $path);
         if (0 == count($constants)) {
             dibi::query('INSERT INTO [constants] %v', $data);
             $constantId = dibi::getInsertId();
@@ -190,31 +190,31 @@ class TagParser
      * @param mixed $codeLine
      * @return void
      */
-    protected function addMethod($name, $path, $codeLine)
+    protected function _addMethod($name, $path, $codeLine)
     {
         $className   = $this->getClassNameForPath($path);
-        $classId     = $this->fetchClassId($className);
-        $methodId    = $this->fetchMethodId($name, $classId);
-        $signatureId = $this->fetchSignatureId('m', trim($codeLine), $path);
+        $classId     = $this->_fetchClassId($className);
+        $methodId    = $this->_fetchMethodId($name, $classId);
+        $signatureId = $this->_fetchSignatureId('m', trim($codeLine), $path);
         $relation = dibi::query(
             'SELECT * FROM [method_signature] WHERE method_id = %s and signature_id = %s',
             $methodId,
             $signatureId
         )->fetch();
         if (false == $relation) {
-            $countOfParams = $this->getCountOfParams($codeLine);
+            $countOfParams = $this->_getCountOfParams($codeLine);
             $data = array(
                 'method_id'             => $methodId,
                 'signature_id'          => $signatureId,
                 'required_params_count' => $countOfParams['required'],
                 'optional_params_count' => $countOfParams['optional'],
-                'visibility'            => $this->getVisibility($codeLine)
+                'visibility'            => $this->_getVisibility($codeLine)
             );
             dibi::query('INSERT INTO [method_signature] %v', $data);
         }
     }
 
-    protected function getCountOfParams($call)
+    protected function _getCountOfParams($call)
     {
         $count = array(
             'required' => 0,
@@ -241,16 +241,16 @@ class TagParser
         return $count;
     }
 
-    protected function getVisibility($definition)
+    protected function _getVisibility($definition)
     {
         if (preg_match('/.*(public|protected|private).*function\ +(\w+)\W*\(/', $definition, $matches)) {
             return $matches[1];
         }
     }
 
-    protected function assignSignatureToMagento($signatureId)
+    protected function _assignSignatureToMagento($signatureId)
     {
-        $magentoId = $this->fetchMagentoId();
+        $magentoId = $this->_fetchMagentoId();
         $relation = dibi::query(
             'SELECT * FROM [magento_signature] WHERE signature_id = %s AND magento_id = %s',
             $signatureId,
@@ -265,24 +265,24 @@ class TagParser
         }
     }
 
-    protected function fetchMagentoId()
+    protected function _fetchMagentoId()
     {
-        if (is_null($this->magentoId)) {
-            $this->magentoId = dibi::query(
+        if (is_null($this->_magentoId)) {
+            $this->_magentoId = dibi::query(
                 'SELECT * FROM [magento] WHERE edition = %s AND version = %s',
-                $this->edition,
-                $this->version
+                $this->_edition,
+                $this->_version
             )->fetchSingle();
-            if (false == $this->magentoId) {
+            if (false == $this->_magentoId) {
                 $magento = array(
-                    'edition' => $this->edition,
-                    'version' => $this->version
+                    'edition' => $this->_edition,
+                    'version' => $this->_version
                 );
                 dibi::query('INSERT INTO [magento] %v', $magento);
-                $this->magentoId = dibi::getInsertId();
+                $this->_magentoId = dibi::getInsertId();
             }
         }
-        return $this->magentoId;
+        return $this->_magentoId;
     }
 
     /**
@@ -291,7 +291,7 @@ class TagParser
      * @param string $name
      * @return int
      */
-    protected function fetchClassId($name)
+    protected function _fetchClassId($name)
     {
         if (0 == strlen ($name)) {
             return null;
@@ -311,7 +311,7 @@ class TagParser
      * @param string $name
      * @return int
      */
-    protected function fetchMethodId($name, $classId)
+    protected function _fetchMethodId($name, $classId)
     {
         $data = array(
             'name'     => $name,
@@ -333,7 +333,7 @@ class TagParser
      * @param string $path
      * @return int
      */
-    protected function fetchSignatureId($type, $definition, $path)
+    protected function _fetchSignatureId($type, $definition, $path)
     {
         $signature = dibi::query(
             'SELECT * FROM [signatures] WHERE type = %s AND definition = %s AND path = %s',
@@ -342,15 +342,15 @@ class TagParser
             $path
         )->fetch();
         if (false == $signature) {
-            $signatureId = $this->createSignature($type, $definition, $path);
+            $signatureId = $this->_createSignature($type, $definition, $path);
         } else {
             $signatureId = $signature->id;
-            $this->assignSignatureToMagento($signatureId);
+            $this->_assignSignatureToMagento($signatureId);
         }
         return $signatureId;
     }
 
-    protected function createSignature($type, $definition, $path)
+    protected function _createSignature($type, $definition, $path)
     {
         $data = array(
             'type'       => $type,
@@ -359,7 +359,7 @@ class TagParser
         );
         dibi::query('INSERT INTO [signatures] %v', $data);
         $signatureId = dibi::getInsertId();
-        $this->assignSignatureToMagento($signatureId);
+        $this->_assignSignatureToMagento($signatureId);
         return $signatureId;
     }
 
