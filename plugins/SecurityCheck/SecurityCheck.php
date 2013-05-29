@@ -148,25 +148,15 @@ class SecurityCheck extends Plugin
                 if (!array_key_exists($type, $result)) {
                     $result[$type] = array();
                 }
-                if (!array_key_exists($filename, $result[$type])) {
-                    $result[$type][$filename] = array($lineNumber);
-                } else {
-                    $result[$type][$filename][] = $lineNumber;
-                }
+                $result[$type][] = $filename . ':' . $lineNumber;
             }
         }
         
         $return = array();
-        foreach ($result as $type => $additional) {
-            $files = array();
-            $occurences = 0;
-            foreach ($additional as $filename => $lines) {
-                $occurences += count($lines);
-                $lines = array_unique($lines);
-                foreach ($lines as $line) {
-                    $files[] = $filename . ':' . $line;
-                }
-            }
+        foreach ($result as $type => $files) {
+            $occurences = count($files);
+            $files = array_unique($files);
+            sort($files);
             $return[] = array(
                 'files'       => $files,
                 'comment'     => sprintf($comment, $type),
