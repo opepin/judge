@@ -21,12 +21,8 @@ class GlobalVariables_Sniffs_GlobalVariables_GlobalVariablesSniff implements PHP
     {
         $tokens = $phpcsFile->getTokens();
         if (in_array($tokens[$stackPtr]['content'], $this->_permitted)) {
-            $phpcsFile->addError(
-                'Global variable "' . $tokens[$stackPtr]['content'] . '" found on line ' . $tokens[$stackPtr]['line'],
-                $stackPtr
-            );
+            $phpcsFile->addError($tokens[$stackPtr]['content'], $stackPtr);
         }
-        
     }
 }
 ?>

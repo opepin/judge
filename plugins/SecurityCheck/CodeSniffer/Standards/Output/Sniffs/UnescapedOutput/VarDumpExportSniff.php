@@ -14,8 +14,7 @@ class Output_Sniffs_UnescapedOutput_VarDumpExportSniff implements PHP_CodeSniffe
         if (in_array($tokens[$stackPtr]['content'], $this->_permitted) 
             && $phpcsFile->findNext(T_OPEN_PARENTHESIS, $stackPtr) ) {
             
-            $phpcsFile->addError('Output construction "' . $tokens[$stackPtr]['content'] . '" found on line ' . 
-                $tokens[$stackPtr]['line'] , $stackPtr);
+            $phpcsFile->addError($tokens[$stackPtr]['content'], $stackPtr);
         }
     }
 }

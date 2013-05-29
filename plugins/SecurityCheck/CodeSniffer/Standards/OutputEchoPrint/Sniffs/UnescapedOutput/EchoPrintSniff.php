@@ -9,8 +9,7 @@ class OutputEchoPrint_Sniffs_UnescapedOutput_EchoPrintSniff implements PHP_CodeS
     public function process(PHP_CodeSniffer_File $phpcsFile, $stackPtr)
     {
         $tokens = $phpcsFile->getTokens();
-        $phpcsFile->addError('Output construction "' . $tokens[$stackPtr]['content'] .
-            '" found on line ' . $tokens[$stackPtr]['line'], $stackPtr);
+        $phpcsFile->addError($tokens[$stackPtr]['content'], $stackPtr);
     }
 }
 ?>
