@@ -1,115 +1,96 @@
 <?php
 namespace Netresearch;
 
+use \Zend_Exception;
+
 class Issue
 {
-    protected $_extension;
-    protected $_checkname;
-    protected $_type;
-    protected $_failed;
-    protected $_comment;
-    protected $_linenumber;
-    protected $_files = array();
-    
-//    public $data = array();
-//    protected $allowedAttributes = array("checkname", "type", "comment");
-     
-    function __construct($dataArray = null) 
+    protected $_data = array(
+        'extension'   => null,
+        'checkname'   => null,
+        'type'        => null,
+        'failed'      => null,
+        'comment'     => null,
+        'linenumber'  => null,
+        'files'       => array(),
+        'occurrences' => 1,
+    );
+
+    /**
+     * Issue constructor
+     * @param array $data
+     */
+    public function __construct(array $data = null)
     {
-        foreach ($dataArray as $key => $value)
-        {
-            $method = 'set' . ucfirst($key);
-            $this->$method($value);
+        if ($data) {
+            $this->setData($data);
         }
-        return $this;
-    }
-    
-    public function setExtension($extension)
-    {
-        $this->_extension = $extension;
-        return $this;
-    }
-    
-    public function setCheckname($checkname)
-    {
-        $this->_checkname = $checkname;
-        return $this;
-    }
-    
-    public function setType($type)
-    {
-        $this->_type = $type;
-        return $this;
-    }
-    
-    public function setComment($comment)
-    {
-        $this->_comment = ltrim(str_replace($this->_extension, '', $comment), DIRECTORY_SEPARATOR);
-        return $this;
-    }
-    
-    public function setFiles($files)
-    {
-        if (!empty($files)) {
-            foreach ($files as $key => $file) {
-                $files[$key] = ltrim(str_replace($this->_extension, '', $file), DIRECTORY_SEPARATOR);
-            }
-        }
-        $this->_files = $files;
-        return $this;
-    }
-    
-    public function setLinenumber($linenumber)
-    {
-        $this->_linenumber = $linenumber;
-        return $this;
-    }
-    
-    public function setFailed($failed)
-    {
-        $this->_failed = $failed;
-        return $this;
-    }
-    
-    public function getExtension()
-    {
-        return $this->_extension;
-    }
-    
-    public function getCheckname()
-    {
-        return $this->_checkname;
-    }
-    
-    public function getType()
-    {
-        return $this->_type;
-    }
-    
-    public function getComment()
-    {
-        return $this->_comment;
-    }
-    
-    public function getFiles()
-    {
-        return $this->_files;
-    }
-    
-    public function getLinenumber()
-    {
-        return $this->_linenumber;
-    }
-    
-    public function getFailed()
-    {
-        return $this->_failed;
-    }
-    
-    public function getJsonData()
-    {
-        $data = get_object_vars($this);
-        return json_encode($data);
     }
 
+    /**
+     * Mass data update
+     *
+     * @param array $data
+     * @return $this
+     */
+    public function setData(array $data)
+    {
+        $this->_data = array_merge($this->_data, array_intersect_key($data, $this->_data));
+        return $this;
+    }
+
+    /**
+     * Magic method for set{Field} and get{Field}
+     *
+     * @param string $name
+     * @param array $args
+     * @return $this|mixed
+     * @throws \Zend_Exception
+     */
+    public function __call($name, $args)
+    {
+        $action = substr($name, 0, 3);
+        $field = strtolower(substr($name, 3));
+
+        if (!in_array($action, array('set', 'get'))
+            || !array_key_exists($field, $this->_data)
+        ) {
+            throw new \Zend_Exception(sprintf('Invalid method %s::%s', get_class($this), $name));
+        }
+
+        switch (substr($name, 0, 3)) {
+            case 'set':
+                if (!array_key_exists(0, $args)) {
+                    throw new \Zend_Exception(sprintf('Method %s::%s requires 1 argument', get_class($this), $name));
+                }
+                $this->_data[$field] = $args[0];
+                break;
+
+            case 'get':
+                return $this->_data[$field];
+                break;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Compact issue data into JSON
+     *
+     * @return string
+     */
+    public function getJsonData()
+    {
+        $data = $this->_data;
+        // Make relative path to file
+        $trim = rtrim($data['extension'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if ($data['files']) {
+            foreach ($data['files'] as $i => $file) {
+                $data['files'][$i] = str_replace($trim, '', $file);
+            }
+        }
+        $data['comment'] = str_replace($trim, '', $data['comment']);
+
+        return json_encode($data);
+    }
 }

@@ -73,8 +73,8 @@ class Rewrites extends Plugin
         ksort($rewrites);
         foreach ($rewrites as $type => $groups) {
             foreach ($groups as $group => $items) {
-                $comment = sprintf('Found %d %s(s) for %s:' . PHP_EOL,
-                    count($items), str_replace('_', ' ', $type), $group);
+                $comment = sprintf('Found %d %s %s(s):' . PHP_EOL,
+                    count($items), rtrim($group, 's'), str_replace('_', ' ', $type));
                 foreach ($items as $item) {
                     $comment .= self::OCCURRENCES_LIST_PREFIX
                         . (isset($item['area']) ? sprintf('%s area - ', ucfirst($item['area'])) : '')
@@ -82,11 +82,12 @@ class Rewrites extends Plugin
                         . self::OCCURRENCES_LIST_SUFFIX;
                 }
                 IssueHandler::addIssue(new Issue(array(
-                    'extension' => $extensionPath,
-                    'checkname' => $this->_pluginName,
-                    'type'      => $type,
-                    'comment'   => $comment,
-                    'failed'    => true
+                    'extension'   => $extensionPath,
+                    'checkname'   => $this->_pluginName,
+                    'type'        => $type,
+                    'comment'     => trim($comment),
+                    'failed'      => true,
+                    'occurrences' => count($items),
                 )));
             }
         }
