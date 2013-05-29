@@ -13,6 +13,10 @@ abstract class Plugin implements PluginInterface
     const OCCURRENCES_LIST_SUFFIX = PHP_EOL;
 
     protected $_phpBin;
+    /**
+     * Execution command
+     * @var string
+     */
     protected $_execCommand;
 
     /**
@@ -50,7 +54,9 @@ abstract class Plugin implements PluginInterface
     }
 
     /**
-     * @param $extensionPath
+     * Execute a plugin (entry point)
+     *
+     * @param string $extensionPath the path to the extension to check
      */
     public function execute($extensionPath)
     {

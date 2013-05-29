@@ -1,7 +1,6 @@
 <?php
 namespace SecurityCheck;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
@@ -10,34 +9,30 @@ use Netresearch\Plugin as Plugin;
 class SecurityCheck extends Plugin
 {
     /**
-     *
-     * @param Config $config
+     * Execution command
+     * @var string
      */
-    public function __construct(Config $config)
-    {
-        parent::__construct($config);
-        $this->_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
-    }
+    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
 
     /**
+     * Execute the SecurityCheck plugin (entry point)
      *
-     * @param type $extensionPath
+     * @param string $extensionPath the path to the extension to check
+     * @throws \Exception
      */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
-        $this->_checkGlobalVariables($extensionPath);
-        $this->_checkOutput($extensionPath);
-        $this->_checkForSQLQueries($extensionPath);
+        parent::execute($extensionPath);
+        $this->_checkGlobalVariables();
+        $this->_checkOutput();
+        $this->_checkForSQLQueries();
     }
     
     /**
      * Check extension for not to have "echo", "print", "var_dump()", "var_export()" calls not in templates
      * Check extension for not to have "var_dump()" and "var_export()" calls in templates
-     * 
-     * @param string $extensionPath 
      */
-    protected function _checkOutput($extensionPath)
+    protected function _checkOutput()
     {
         $addionalParams = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/OutputEchoPrint',
@@ -57,7 +52,7 @@ class SecurityCheck extends Plugin
         $failed = count($parsedResult) > $this->_settings->allowedMissingEscaping ? true : false;
         foreach ($parsedResult as $comment) {
             IssueHandler::addIssue(new Issue( array( 
-                "extension" => $extensionPath,
+                "extension" => $this->_extensionPath,
                 "checkname" => $this->_pluginName,
                 "type"      => 'escape',
                 "comment"   => $comment,
@@ -68,21 +63,19 @@ class SecurityCheck extends Plugin
     
     /**
      * Check extension for not to have global variables calls
-     * 
-     * @param string $extensionPath 
      */    
-    protected function _checkGlobalVariables($extensionPath)
+    protected function _checkGlobalVariables()
     {
         $addionalParams = array(
             'standard' => __DIR__ . '/CodeSniffer/Standards/GlobalVariables',
             'extensions' => 'php,phtml',
         );
-        $csResults = $this->_executePhpCommand($this->config, $addionalParams);
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedResult = $this->_parsePhpCsResult($csResults);
-        $failed = count($parsedResult) > $this->settings->allowedRequestParams ? true : false;
+        $failed = count($parsedResult) > $this->_settings->allowedRequestParams ? true : false;
         foreach ($parsedResult as $comment) {
             IssueHandler::addIssue(new Issue( array( 
-                "extension" => $extensionPath,
+                "extension" => $this->_extensionPath,
                 "checkname" => $this->_pluginName,
                 "type"      => 'params',
                 "comment"   => $comment,
@@ -92,13 +85,12 @@ class SecurityCheck extends Plugin
     }
 
     /**
-     *
-     * @param type $extensionPath
+     * Check for SQL Queries (SELECT, INSERT, UPDATE, DELETE)
      */
-    protected function _checkForSQLQueries($extensionPath)
+    protected function _checkForSQLQueries()
     {
         foreach ($this->_settings->sqlQueryPattern as $sqlQueryPattern) {
-            $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $extensionPath . '/app';
+            $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $this->_extensionPath . '/app';
             try {
                 $filesWithThatToken = $this->_executeCommand($command);
             } catch (\Zend_Exception $e) {
@@ -106,7 +98,7 @@ class SecurityCheck extends Plugin
             }
             if (0 < count($filesWithThatToken)) {
                 IssueHandler::addIssue(new Issue(
-                        array(  "extension" =>  $extensionPath,
+                        array(  "extension" => $this->_extensionPath,
                                 "checkname" => $this->_pluginName,
                                 "type"      => 'sql',
                                 "comment"   => $sqlQueryPattern,
@@ -114,14 +106,14 @@ class SecurityCheck extends Plugin
                                 "failed"    =>  true)));
                 
             }
-            Logger::setResultValue($extensionPath, $this->_pluginName, $sqlQueryPattern, count($filesWithThatToken));
+            Logger::setResultValue($this->_extensionPath, $this->_pluginName, $sqlQueryPattern, count($filesWithThatToken));
         }
     }
     
     /**
      * Parses php code sniffer execution resource into array with predifined structure
      * 
-     * @param string $phpcsOutput
+     * @param array $phpcsOutput
      * @return array 
      */
     protected function _parsePhpCsResult($phpcsOutput)

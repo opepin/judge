@@ -1,7 +1,6 @@
 <?php
 namespace CheckStyle;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
@@ -15,11 +14,11 @@ class CheckStyle extends Plugin
         'warnings'  => array()
     );
 
-    public function __construct(Config $config)
-    {
-        parent::__construct($config);
-        $this->_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
-    }
+    /**
+     * Execution command
+     * @var string
+     */
+    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
 
     /**
      *
@@ -28,7 +27,6 @@ class CheckStyle extends Plugin
     public function execute($extensionPath)
     {
         parent::execute($extensionPath);
-
         $params = array(
             'ignore' => '*/jquery*',
             'standard' => $this->_settings->standardToUse

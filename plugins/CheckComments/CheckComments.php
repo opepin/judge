@@ -1,7 +1,6 @@
 <?php
 namespace CheckComments;
 
-use Netresearch\Config;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
@@ -12,13 +11,11 @@ class CheckComments extends Plugin
     protected $_ncloc = 0;
     protected $_cloc = 0;
 
-
-
-    public function __construct(Config $config)
-    {
-        parent::__construct($config);
-        $this->_execCommand = 'vendor/pdepend/pdepend/src/bin/pdepend';
-    }
+    /**
+     * Execution command
+     * @var string
+     */
+    protected $_execCommand = 'vendor/pdepend/pdepend/src/bin/pdepend';
 
     /**
      *
