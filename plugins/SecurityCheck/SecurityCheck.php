@@ -41,8 +41,9 @@ class SecurityCheck extends Plugin
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults,
-            'Output construction "%s" found not in templates');
-        $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults);
+            'Output construction "%s" found not in templates;',
+            array('OutputEchoPrint.UnescapedOutput.EchoPrint')
+        );
         
         $addionalParams = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/Output',
@@ -50,7 +51,10 @@ class SecurityCheck extends Plugin
             'report'     => 'checkstyle',
         );        
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
-        $parsedTemplatesResult = $this->_parsePhpCsResult($csResults, 'Output construction "%s" found');
+        $parsedTemplatesResult = $this->_parsePhpCsResult($csResults,
+            'Output construction %s',
+            array('Output.UnescapedOutput.VarDumpExport')
+        );
         
         $parsedResult = array_merge($parsedNotTemplatesResult, $parsedTemplatesResult);
         foreach ($parsedResult as $entry) {
@@ -76,7 +80,10 @@ class SecurityCheck extends Plugin
             'report'   => 'checkstyle',
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
-        $parsedResult = $this->_parsePhpCsResult($csResults, 'Global variable "%s" found');
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Global variable %s',
+            array('GlobalVariables.GlobalVariables.GlobalVariables')
+        );
         foreach ($parsedResult as $entry) {
             IssueHandler::addIssue(new Issue( array( 
                 "extension"   => $this->_extensionPath,
@@ -120,11 +127,15 @@ class SecurityCheck extends Plugin
      * 
      * @param array  $phpcsOutput
      * @param string $comment
+     * @param array $sniffsToListen
      * @return array 
      */    
-    protected function _parsePhpCsResult($phpcsOutput, $comment = 'Issue %s found')
+    protected function _parsePhpCsResult($phpcsOutput, $comment = 'Issue %s found', $sniffsToListen = array())
     {
         $result = array();
+        if (!is_array($sniffsToListen) || empty($sniffsToListen)) {
+            return $result;
+        }
         $phpcsOutput = implode('', $phpcsOutput);
         
         try {
@@ -143,8 +154,8 @@ class SecurityCheck extends Plugin
                 continue;
             }
             foreach ($errors as $error) {
-                // Ignoring internal PHPCS errors like "No PHP code was found..."
-                if (strpos((string)$error->attributes()->source, 'Internal') !== false) {
+                // Ignoring all sniffs except specified in $sniffsToListen
+                if (!in_array((string)$error->attributes()->source, $sniffsToListen)) {
                     continue;
                 }
                 $type = (string)$error->attributes()->message;
