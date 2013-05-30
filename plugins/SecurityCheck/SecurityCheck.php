@@ -143,6 +143,10 @@ class SecurityCheck extends Plugin
                 continue;
             }
             foreach ($errors as $error) {
+                // Ignoring internal PHPCS errors like "No PHP code was found..."
+                if (strpos((string)$error->attributes()->source, 'Internal') !== false) {
+                    continue;
+                }
                 $type = (string)$error->attributes()->message;
                 $lineNumber = (string)$error->attributes()->line;
                 if (!array_key_exists($type, $result)) {
