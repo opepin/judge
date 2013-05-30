@@ -41,7 +41,7 @@ class SecurityCheck extends Plugin
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults,
-            'Output construction "%s" found not in templates;',
+            'Output construction "%s" (allowed only in templates)',
             array('OutputEchoPrint.UnescapedOutput.EchoPrint')
         );
         
