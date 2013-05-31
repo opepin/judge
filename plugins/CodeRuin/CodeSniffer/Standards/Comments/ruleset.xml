@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<ruleset name="Comments">
+    <description>Sniffs for Code Ruin check looking for fix requests in comments</description>
+</ruleset>
