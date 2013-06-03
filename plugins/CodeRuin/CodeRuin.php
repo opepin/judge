@@ -25,7 +25,6 @@ class CodeRuin extends Plugin
         parent::execute($extensionPath);
         $this->_checkComments();
         $this->_checkDieCall();
-        $this->_checkZendDebug();
     }
 
     /**
@@ -63,22 +62,4 @@ class CodeRuin extends Plugin
         );
         $this->_addPhpCsIssues($parsedResult, 'critical');
     }
-    
-    /**
-     * Check for call ZendDebug::dump()
-     */
-    protected function _checkZendDebug()
-    {
-        $addionalParams = array(
-            'standard'   => __DIR__ . '/CodeSniffer/Standards/ZendDebug',
-            'extensions' => 'php,phtml',
-            'report'     => 'checkstyle',
-        );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
-        $parsedResult = $this->_parsePhpCsResult($csResults,
-            'Call "%s"',
-            array('ZendDebug.ZendDebug.ZendDebug')
-        );
-        $this->_addPhpCsIssues($parsedResult, 'critical');
-    }    
 }
