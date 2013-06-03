@@ -101,24 +101,25 @@ class SecurityCheck extends Plugin
      */
     protected function _checkForSQLQueries()
     {
-        foreach ($this->_settings->sqlQueryPattern as $sqlQueryPattern) {
-            $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $this->_extensionPath . '/app';
-            try {
-                $filesWithThatToken = $this->_executeCommand($command);
-            } catch (\Zend_Exception $e) {
-                return;
-            }
-            if (0 < count($filesWithThatToken)) {
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension" => $this->_extensionPath,
-                                "checkname" => $this->_pluginName,
-                                "type"      => 'sql',
-                                "comment"   => $sqlQueryPattern,
-                                "files"     => $filesWithThatToken,
-                                "failed"    =>  true)));
-                
-            }
-            Logger::setResultValue($this->_extensionPath, $this->_pluginName, $sqlQueryPattern, count($filesWithThatToken));
+        $addionalParams = array(
+            'standard' => __DIR__ . '/CodeSniffer/Standards/SQL',
+            'extensions' => 'php',
+            'report'   => 'checkstyle',
+        );
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Raw %s query',
+            array('SQL.RawSQL.Select', 'SQL.RawSQL.Delete', 'SQL.RawSQL.Update', 'SQL.RawSQL.Insert')
+        );
+        foreach ($parsedResult as $entry) {
+            IssueHandler::addIssue(new Issue( array(
+                "extension"   => $this->_extensionPath,
+                "checkname"   => $this->_pluginName,
+                "type"        => 'params',
+                "comment"     => $entry['comment'],
+                "files"       => $entry['files'],
+                "occurrences" => $entry['occurrences'],
+            )));
         }
     }
 
