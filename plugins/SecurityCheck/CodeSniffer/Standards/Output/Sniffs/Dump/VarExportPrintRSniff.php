@@ -23,7 +23,8 @@ class Output_Sniffs_Dump_VarExportPrintRSniff implements PHP_CodeSniffer_Sniff {
                     /* there are more than one param in function call.
                      if second param is NULL, FALSE, 0(ZERO) or empty string adding error */
                     $paramId = $phpcsFile->findNext(
-                        array(T_CONSTANT_ENCAPSED_STRING, T_FALSE, T_NULL, T_DNUMBER, T_LNUMBER),
+                        array(
+                            T_CONSTANT_ENCAPSED_STRING, T_DOUBLE_QUOTED_STRING, T_FALSE, T_NULL, T_DNUMBER, T_LNUMBER),
                         $commaId,
                         $bracketsEnd
                     );
