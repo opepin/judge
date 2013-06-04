@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<ruleset name="CoreHacks">
+    <description>Sniffs for CoreHacks checker regarding overriding native classes via local code pool</description>
+</ruleset>

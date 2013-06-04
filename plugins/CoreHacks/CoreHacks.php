@@ -11,29 +11,31 @@ use Netresearch\Plugin as Plugin;
  */
 class CoreHacks extends Plugin
 {
+    /**
+     * Execution command
+     * @var string
+     */
+    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';    
+    
+    /**
+     * Execute the CoreHacks plugin (entry point)
+     *
+     * @param string $extensionPath the path to the extension to check
+     * @throws \Exception
+     */
     public function execute($extensionPath)
     {
-        $this->_extensionPath = $extensionPath;
-
-        $coreHackCount = 0;
-        foreach (array('Mage_', 'Enterprise_') as $corePrefix) {
-            $command = 'grep -rEh "class ' . $corePrefix . '.* extends" ' . $extensionPath;
-            try {
-                $output = $this->_executeCommand($command);
-            } catch (\Zend_Exception $e) {
-                return;
-            }
-            $coreHackCount += count($output);
-        }
-        if ($coreHackCount != 0) {
-            IssueHandler::addIssue(new Issue( array(
-                "extension" =>  $this->_extensionPath,
-                "checkname" =>  $this->_pluginName,
-                "type"      =>  "corehack",
-                "comment"   =>  "corehack found",
-                "failed"    =>  true))
-            );
-        }
+        parent::execute($extensionPath);
+        $addionalParams = array(
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/CoreHacks',
+            'extensions' => 'php',
+            'report'     => 'checkstyle',
+        );
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Core Hack for class "%s"',
+            array('CoreHacks.Class.Override')
+        );
+        $this->_addPhpCsIssues($parsedResult, 'corehack');
     }
 }
-

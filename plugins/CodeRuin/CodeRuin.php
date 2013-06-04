@@ -9,37 +9,57 @@ use Netresearch\Plugin as Plugin;
 class CodeRuin extends Plugin
 {
     /**
+     * Execution command
+     * @var string
+     */
+    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
+
+    /**
+     * Execute the CodeRuin plugin (entry point)
      *
      * @param string $extensionPath the path to the extension to check
+     * @throws \Exception
      */
     public function execute($extensionPath)
     {
         parent::execute($extensionPath);
-        $this->_extensionContainsTokens($extensionPath, $this->_settings->criticals, 'critical');
-        $this->_extensionContainsTokens($extensionPath, $this->_settings->warnings, 'warning');
+        $this->_checkComments();
+        $this->_checkDieCall();
     }
 
-    protected function _extensionContainsTokens($extensionPath, $tokens, $type)
+    /**
+     * Check for fix requests '@todo', '@fixme', '@xxx' in comments
+     */
+    protected function _checkComments()
     {
-        foreach ($tokens as $token) {
-            $command = 'grep -riEl "' . $token . '" ' . $extensionPath . '/app';
-            try {
-                $filesWithThatToken = $this->_executeCommand($command);
-            } catch (\Zend_Exception $e) {
-                return;
-            }
-            if (count($filesWithThatToken)) {
-                IssueHandler::addIssue(new Issue(
-                    array('extension' =>  $extensionPath,
-                          'checkname' => $this->_pluginName,
-                          'type'      => $type,
-                          'comment'   => $token,
-                          'files'     => $filesWithThatToken,
-                          'failed'    =>  true
-                    )
-                ));
-            }
-        }
+        $addionalParams = array(
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/Comments',
+            'extensions' => 'php,phtml',
+            'report'     => 'checkstyle',
+        );
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Fix request "%s"',
+            array('Comments.Comments.FixRequest')
+        );
+        $this->_addPhpCsIssues($parsedResult, 'warning');
+    }
+    
+    /**
+     * Check for "die()" function call
+     */
+    protected function _checkDieCall()
+    {    
+        $addionalParams = array(
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/DieExit',
+            'extensions' => 'php,phtml',
+            'report'     => 'checkstyle',
+        );
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Function "%s"',
+            array('DieExit.DieExit.DieExit')
+        );
+        $this->_addPhpCsIssues($parsedResult, 'critical');
     }
 }
-
