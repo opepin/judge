@@ -53,7 +53,7 @@ class SecurityCheck extends Plugin
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedTemplatesResult = $this->_parsePhpCsResult($csResults,
             'Output construction %s',
-            array('Output.Dump.VarDump', 'Output.Dump.VarExport', 'Output.Dump.ZendDebug')
+            array('Output.Dump.VarDump', 'Output.Dump.VarExportPrintR', 'Output.Dump.ZendDebug')
         );
         $parsedResult = array_merge($parsedNotTemplatesResult, $parsedTemplatesResult);
         $this->_addPhpCsIssues($parsedResult, 'escape');

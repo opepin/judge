@@ -12,7 +12,7 @@ class Output_Sniffs_Dump_VarDumpSniff implements PHP_CodeSniffer_Sniff {
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['content'] == $this->_forbidden 
-            && $phpcsFile->findNext(T_OPEN_PARENTHESIS, $stackPtr) ) {
+            && $phpcsFile->findNext(T_OPEN_PARENTHESIS, $stackPtr, null, false, null, true) !== false) {
             
             $phpcsFile->addError($tokens[$stackPtr]['content'], $stackPtr);
         }
