@@ -3,8 +3,7 @@ namespace CoreHacks;
 
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue;
-use Netresearch\Plugin as Plugin;
+use Netresearch\Plugin\CodeSniffer as Plugin;
 
 /**
  * detect Magento core hacks

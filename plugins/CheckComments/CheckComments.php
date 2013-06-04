@@ -4,7 +4,7 @@ namespace CheckComments;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\Plugin as Plugin;
+use Netresearch\Plugin\PluginAbstract as Plugin;
 
 class CheckComments extends Plugin
 {
