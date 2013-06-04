@@ -82,20 +82,33 @@ abstract class SQL_Sniffs_RawSQL_SniffAbstract implements PHP_CodeSniffer_Sniff
         // statement's parts concatenation
         $statementTokens = array_values($statementTokens);
         for ($i = 1; isset($statementTokens[$i]); $i++) {
-            if ($statementTokens[$i]['type'] === 'T_STRING_CONCAT'
+            if ($this->_isStringToken($statementTokens, $i)
+                && $this->_isStringToken($statementTokens, $i - 1)
+            ){
+                // the same sting constant but split in different lines
+                $statementTokens[$i - 1]['content'] = $this->_concatStrings(
+                    $statementTokens[$i - 1]['content'],
+                    $statementTokens[$i]['content']
+                );
+                unset($statementTokens[$i]);
+                $statementTokens = array_values($statementTokens);
+                $i--;
+            } elseif ($statementTokens[$i]['type'] === 'T_STRING_CONCAT'
                 && $this->_isStringToken($statementTokens, $i - 1)
                 && ($this->_isStringToken($statementTokens, $i + 1)
                     || $this->_isVarToken($statementTokens, $i + 1))
             ) {
                 // do the concatenation operation, and merge right side token with left side
-                $statementTokens[$i] = $statementTokens[$i - 1];
-                $statementTokens[$i]['content'] = $this->_concatStrings(
+                $statementTokens[$i - 1]['content'] = $this->_concatStrings(
                     $statementTokens[$i - 1]['content'],
                     $statementTokens[$i + 1]['content']
                 );
-                unset($statementTokens[$i - 1], $statementTokens[$i + 1]);
+                unset($statementTokens[$i], $statementTokens[$i + 1]);
                 $statementTokens = array_values($statementTokens);
                 $i--;
+            } else{
+                // remaining part cant be resolved
+                break;
             }
         }
         $statementTokens = array_values($statementTokens);
