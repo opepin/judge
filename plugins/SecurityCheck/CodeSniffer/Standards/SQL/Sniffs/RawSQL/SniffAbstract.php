@@ -42,15 +42,33 @@ abstract class SQL_Sniffs_RawSQL_SniffAbstract implements PHP_CodeSniffer_Sniff
         $tokens = $phpcsFile->getTokens();
         if (
             // Check for a accurate pattern
-            preg_match($this->_accuratePattern, $tokens[$stackPtr]['content'])
+            $this->_isMatched($tokens[$stackPtr]['content'])
             // or if SQL statement is partitioned try to combine query and check result again
-            || $this->_approximatePattern
-            && preg_match($this->_approximatePattern, $tokens[$stackPtr]['content'])
+            || $this->_isMatched($tokens[$stackPtr]['content'], 'approximate')
             && ($statement = $this->_combineStatement($phpcsFile, $stackPtr))
-            && preg_match($this->_accuratePattern, $statement)
+            && $this->_isMatched($statement)
         ) {
             $phpcsFile->addError($this->_getIssueName(), $stackPtr);
         }
+    }
+
+    /**
+     * Check matching predefined patterns
+     *
+     * @param string $str str to match
+     * @param string $type ('accurate'|'approximate')
+     * @return bool
+     */
+    protected function _isMatched($str, $type = 'accurate')
+    {
+        $result = false;
+        $patterns = (array) $this->{"_{$type}Pattern"};
+        foreach ($patterns as $pattern) {
+            if ($result = (bool) preg_match($pattern, $str)) {
+                break;
+            }
+        }
+        return $result;
     }
 
     /**
