@@ -8,66 +8,110 @@ use Netresearch\Plugin\PluginAbstract as Plugin;
 
 class SourceCodeComplexity extends Plugin
 {
-    protected $_results;
-
+    
+    CONST PHP_MESS_DETECTOR_COMMAND = 'vendor/phpmd/phpmd/src/bin/phpmd';
+    
     /**
-     *
+     * Checker entry point
+     * 
      * @param string $extensionPath the path to the extension to check
      */
     public function execute($extensionPath)
     {
         parent::execute($extensionPath);
+        $this->_checkWithPHPMessDetector();
         $this->_executePHPDepend($extensionPath);
         $this->_executePHPCpd($extensionPath);
-        $this->_executePHPMessDetector($extensionPath);
     }
 
     /**
-     * checks the extension with phpMessDetector and returns the scoring
-     *
-     * @param string $extensionPath extension to check
+     * Checks the extension with phpMessDetector 
      */
-    protected function _executePHPMessDetector($extensionPath)
+    protected function _checkWithPHPMessDetector()
     {
-        $this->setExecCommand('vendor/phpmd/phpmd/src/bin/phpmd');
-        $params = array($extensionPath, 'text', $this->_settings->phpMessDetector->useRuleSets);
+        $this->setExecCommand(self::PHP_MESS_DETECTOR_COMMAND);
+        $addionalParams = array(
+            // path to extension to analyze
+            $this->_extensionPath,
+            // report view
+            'xml',
+            // path to standards
+            __DIR__ . '/PhpMessDetector/ruleset.xml'
+        );
+        $mdResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $parsedResult = $this->_parsePhpMdResults($mdResults);
+        $this->_addIssues($parsedResult, 'mess_detector');
+    }
+    
+    /**
+     * Parses results provided by PHP Mess Detector into array with predefined structure
+     * 
+     * @param array $phpmdOutput
+     * @return array 
+     */
+    protected function _parsePhpMdResults($phpmdOutput)
+    {
+        $result = array();
+        $phpmdOutput = implode('', $phpmdOutput);
+        
         try {
-            $mdResults = $this->_executePhpCommand($this->_config, $params);
-        } catch (\Zend_Exception $e) {
-            return;
+            $xml = simplexml_load_string($phpmdOutput);
+        } catch(\Exception $e) {
+            return $result;
         }
-
-        if ($this->_settings->phpMessDetector->allowedIssues < count($mdResults)) {
-            foreach ($mdResults as $issue) {
-                //prepare comment for db log
-                $comment = null;
-                $linenumber = null;
-                $filename = null;
-                $commentParts = explode(":", $issue, 2);
-                if (count($commentParts) > 1) {
-                    $filename = $commentParts[0];
-                    $comment = $commentParts[1];
+        $files = $xml->xpath('file');
+        if (!$files) {
+            return $result;
+        }
+        foreach ($files as $file) {
+            $filename = (string)$file->attributes()->name;
+            $violations = $file->xpath('violation');
+            if (!$violations) {
+                continue;
+            }
+            foreach ($violations as $violation) {
+                $type = (string)$violation;
+                $lineNumber = (string)$violation->attributes()->beginline;
+                if (!array_key_exists($type, $result)) {
+                    $result[$type] = array();
                 }
-
-                $commentParts = explode("\t", $comment, 2);
-                if (count($commentParts) > 1)
-                {
-                    $linenumber = $commentParts[0];
-                    $comment = $commentParts[1];
-                }
-
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension"     =>  $extensionPath,
-                                "checkname"     =>  $this->_pluginName,
-                                "type"          =>  'mess_detector',
-                                "comment"       =>  $comment,
-                                "linenumber"    =>  $linenumber,
-                                "files"         =>  array($filename),
-                                "failed"        =>  true)));
+                $result[$type][] = $filename . ':' . $lineNumber;
             }
         }
+        $return = array();
+        foreach ($result as $type => $files) {
+            $occurences = count($files);
+            $files = array_unique($files);
+            sort($files);
+            $return[] = array(
+                'files'       => $files,
+                'comment'     => trim($type),
+                'occurrences' => $occurences,
+            );
+        }
+        return $return;        
     }
 
+    /**
+     * Adds issue(s) to result with specified comment, files, occurrences, type
+     *
+     * @param array $issues
+     * @param string $type
+     */
+    protected function _addIssues($issues, $type)
+    {
+        foreach ($issues as $issue) {
+            IssueHandler::addIssue(new Issue( array(
+                "extension"   => $this->_extensionPath,
+                "checkname"   => $this->_pluginName,
+                "type"        => $type,
+                "comment"     => $issue['comment'],
+                "files"       => $issue['files'],
+                "occurrences" => $issue['occurrences'],
+            )));
+        }
+    }
+    
     /**
      * checks the extensions complexity with phpDepend and returns the scoring
      *
