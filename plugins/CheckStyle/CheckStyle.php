@@ -24,7 +24,7 @@ class CheckStyle extends Plugin
         parent::execute($extensionPath);
         $params = array(
             'ignore'   => '*/jquery*',
-            'standard' => $this->_settings->standardToUse,
+            'standard' => __DIR__ . '/CodeSniffer/Standards/Magento',
             'report'   => 'checkstyle',
         );
 
