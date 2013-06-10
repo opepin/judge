@@ -3,8 +3,7 @@ namespace CodeRuin;
 
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue as Issue;
-use Netresearch\Plugin as Plugin;
+use Netresearch\Plugin\CodeSniffer as Plugin;
 
 class CodeRuin extends Plugin
 {

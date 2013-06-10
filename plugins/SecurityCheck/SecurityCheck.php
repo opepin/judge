@@ -3,8 +3,7 @@ namespace SecurityCheck;
 
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Issue as Issue;
-use Netresearch\Plugin as Plugin;
+use Netresearch\Plugin\CodeSniffer as Plugin;
 
 class SecurityCheck extends Plugin
 {
@@ -53,7 +52,7 @@ class SecurityCheck extends Plugin
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedTemplatesResult = $this->_parsePhpCsResult($csResults,
             'Output construction %s',
-            array('Output.Dump.VarDump', 'Output.Dump.VarExport', 'Output.Dump.ZendDebug')
+            array('Output.Dump.VarDump', 'Output.Dump.VarExportPrintR', 'Output.Dump.ZendDebug')
         );
         $parsedResult = array_merge($parsedNotTemplatesResult, $parsedTemplatesResult);
         $this->_addPhpCsIssues($parsedResult, 'escape');
@@ -65,9 +64,9 @@ class SecurityCheck extends Plugin
     protected function _checkGlobalVariables()
     {
         $addionalParams = array(
-            'standard' => __DIR__ . '/CodeSniffer/Standards/GlobalVariables',
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/GlobalVariables',
             'extensions' => 'php,phtml',
-            'report'   => 'checkstyle',
+            'report'     => 'checkstyle',
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedResult = $this->_parsePhpCsResult($csResults,
@@ -82,24 +81,17 @@ class SecurityCheck extends Plugin
      */
     protected function _checkForSQLQueries()
     {
-        foreach ($this->_settings->sqlQueryPattern as $sqlQueryPattern) {
-            $command = 'grep -riEl "' . $sqlQueryPattern . '" ' . $this->_extensionPath . '/app';
-            try {
-                $filesWithThatToken = $this->_executeCommand($command);
-            } catch (\Zend_Exception $e) {
-                return;
-            }
-            if (0 < count($filesWithThatToken)) {
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension" => $this->_extensionPath,
-                                "checkname" => $this->_pluginName,
-                                "type"      => 'sql',
-                                "comment"   => $sqlQueryPattern,
-                                "files"     => $filesWithThatToken,
-                                "failed"    =>  true)));
-                
-            }
-            Logger::setResultValue($this->_extensionPath, $this->_pluginName, $sqlQueryPattern, count($filesWithThatToken));
-        }
+        $addionalParams = array(
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/SQL',
+            'extensions' => 'php',
+            'report'     => 'checkstyle',
+            'ignore'     => '*/lib/*'
+        );
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Raw %s query',
+            array('SQL.RawSQL.Select', 'SQL.RawSQL.Delete', 'SQL.RawSQL.Update', 'SQL.RawSQL.Insert')
+        );
+        $this->_addPhpCsIssues($parsedResult, 'sql');
     }
 }
