@@ -53,25 +53,22 @@ class CoreHacks extends Plugin
     protected function _checkCoreCodePool()
     {
         $files = array();
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->_extensionPath));
+        /** @var \RecursiveDirectoryIterator $dir */
+        $dir = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->_extensionPath));
 
-        while($iterator->valid()) {
-            if (!$iterator->isDot()) {
-                if (strpos($iterator->getSubPath(), 'app/code/core') !== false) {
-                    $files[] = $iterator->getSubPathName();
-                }
+        while ($dir->valid()) {
+            if (!$dir->isDot() && strpos($dir->getSubPath(), 'app/code/core') !== false) {
+                $files[] = $dir->getSubPathname();
             }
-            $iterator->next();
+            $dir->next();
         }
         if (!empty($files)) {
-            IssueHandler::addIssue(new Issue( array( 
-                "extension"   => $this->_extensionPath,
-                "checkname"   => $this->_pluginName,
-                "type"        => 'corehack',
-                "comment"     => 'Core Hacks for "core" code pool',
-                "files"       => $files,
-                "occurrences" => count($files),
-            )));
+            $this->_addIssue(array(
+                'type'        => 'corehack',
+                'comment'     => 'Core Hacks for "core" code pool',
+                'files'       => $files,
+                'occurrences' => count($files),
+            ));
         }
     }
 }

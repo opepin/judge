@@ -3,7 +3,8 @@ namespace Netresearch\Plugin;
 
 use Netresearch\Config;
 use Netresearch\IssueHandler;
-use Netresearch\Issue as Issue;
+use Netresearch\Issue;
+use Netresearch\Logger;
 
 /**
  * Base class for plugins
@@ -117,19 +118,14 @@ abstract class PluginAbstract
      */
     public function setUnfinishedIssue($reason = '')
     {
-        $message = 'Failed to execute ' . $this->_pluginName .' plugin.';
+        $message = 'Failed to execute ' . $this->_pluginName . ' plugin.';
         // if a specific reason is given, append it to the message
-        if (0 < strlen(trim($reason))) {
-            $message .= ' reason: ' . $reason;
+        if (trim($reason)) {
+            $message .= ' Reason: ' . $reason;
         }
-        IssueHandler::addIssue(new Issue(
-            array(
-                'extension' =>  $this->_extensionPath,
-                'checkname' =>  $this->_pluginName,
-                'type'      =>  'unfinished',
-                'comment'   =>  $message,
-                'failed'    =>  false
-            )
+        $this->_addIssue(array(
+            'type'    => 'unfinished',
+            'comment' => $message,
         ));
     }
 
@@ -143,4 +139,26 @@ abstract class PluginAbstract
         return $this;
     }
 
+    /**
+     * Adds issue to result with specified type, comment, [files] and [occurrences]
+     *
+     * @param array $issue
+     * @throws \Zend_Exception
+     */
+    protected function _addIssue(array $issue)
+    {
+        if (empty($issue['comment']) || empty($issue['type'])) {
+            throw new \Zend_Exception('Attempt to add malformed issue');
+        }
+
+        IssueHandler::addIssue(new Issue(array_merge(
+            array(
+                'extension'   => $this->_extensionPath,
+                'checkname'   => $this->_pluginName,
+                'files'       => array(),
+                'occurrences' => 1,
+            ),
+            $issue
+        )));
+    }
 }

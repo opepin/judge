@@ -69,22 +69,18 @@ class CodeSniffer extends PluginAbstract
     }
 
     /**
-     * Adds issue(s) to result with specified comment, files, occurrences, type
+     * Adds issue to result with specified type, comment, [files] and [occurrences]
      *
      * @param array $issues
-     * @param string $type
+     * @param string|null $type
      */
-    protected function _addPhpCsIssues($issues, $type)
+    protected function _addPhpCsIssues($issues, $type = null)
     {
         foreach ($issues as $issue) {
-            IssueHandler::addIssue(new Issue( array(
-                "extension"   => $this->_extensionPath,
-                "checkname"   => $this->_pluginName,
-                "type"        => $type,
-                "comment"     => $issue['comment'],
-                "files"       => $issue['files'],
-                "occurrences" => $issue['occurrences'],
-            )));
+            if (!is_null($type)) {
+                $issue['type'] = $type;
+            }
+            $this->_addIssue($issue);
         }
     }
 }
