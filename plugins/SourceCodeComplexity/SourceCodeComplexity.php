@@ -11,6 +11,9 @@ class SourceCodeComplexity extends Plugin
     
     CONST PHP_MESS_DETECTOR_COMMAND = 'vendor/phpmd/phpmd/src/bin/phpmd';
     
+    CONST PHP_CPD_MIN_LINES = 5;
+    
+    CONST PHP_CPD_MIN_TOKENS = 70;
     /**
      * Checker entry point
      * 
@@ -19,15 +22,15 @@ class SourceCodeComplexity extends Plugin
     public function execute($extensionPath)
     {
         parent::execute($extensionPath);
-        $this->_checkWithPHPMessDetector();
+        $this->_checkWithPhpMessDetector();
         $this->_executePHPDepend($extensionPath);
-        $this->_executePHPCpd($extensionPath);
+        $this->_checkWithPhpCopyPasteDetector();
     }
 
     /**
      * Checks the extension with phpMessDetector 
      */
-    protected function _checkWithPHPMessDetector()
+    protected function _checkWithPhpMessDetector()
     {
         $this->setExecCommand(self::PHP_MESS_DETECTOR_COMMAND);
         $addionalParams = array(
@@ -150,40 +153,27 @@ class SourceCodeComplexity extends Plugin
     }
 
     /**
-     *  checks the extension with php copy and paste detector
-     *
-     * @param string $extensionPath extension to check
+     * Checks the extension with php copy and paste detector
      */
-    protected function _executePHPCpd($extensionPath)
+    protected function _checkWithPhpCopyPasteDetector()
     {
-        $minLines   = $this->_settings->phpcpd->minLines;
-        $minTokens  = $this->_settings->phpcpd->minTokens;
-        $verbose = null;
-        $suffixes = '';
-        $exclude  = array();
-        $commonPath = false;
-
         $facade = new \File_Iterator_Facade;
-        $files = $facade->getFilesAsArray(
-            $extensionPath, $suffixes, array(), $exclude, $commonPath
-        );
+        $files = $facade->getFilesAsArray($this->_extensionPath);
 
         $strategy = new \PHPCPD_Detector_Strategy_Default();
+        $detector = new \PHPCPD_Detector($strategy, null);
         
-        $detector = new \PHPCPD_Detector($strategy, $verbose);
-
-        $clones = @$detector->copyPasteDetection(
-          $files, $minLines, $minTokens
-        );
-        $cpdPercentage = $clones->getPercentage();
-        if ($this->_settings->phpcpd->percentageGood < $cpdPercentage) {
-            IssueHandler::addIssue(new Issue(
-                    array(  "extension" =>  $extensionPath,
-                            "checkname" => $this->_pluginName,
-                            "type"      => 'duplicated_code',
-                            "comment"   => $cpdPercentage,
-                            "failed"        =>  true)));
-            
+        try{
+            $clones = $detector->copyPasteDetection($files, self::PHP_CPD_MIN_LINES, self::PHP_CPD_MIN_TOKENS);
+        } catch (Exception $e) {
+            return ;
         }
+        $issue = array(array(
+            'files'       => $clones->getFilesWithClones(),
+            'comment'     => $clones->getPercentage(),
+            'occurrences' => $clones->count()
+        ));
+
+        $this->_addIssues($issue, 'duplicated_code');
     }
 }
