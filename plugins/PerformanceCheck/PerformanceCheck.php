@@ -4,27 +4,25 @@ namespace PerformanceCheck;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\Plugin\PluginAbstract as Plugin;
+use Netresearch\Plugin\Plugin as Plugin;
 
 class PerformanceCheck extends Plugin
 {
     protected $_results;
 
     /**
-     *
-     * @param string $extensionPath path to the extension to evaluate
+     * Execute the PerformanceCheck plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
-        parent::execute($extensionPath);
-        $possiblePerformanceKillers = $this->_scanForPerformanceLeaks($extensionPath);
+        $possiblePerformanceKillers = $this->_scanForPerformanceLeaks($this->_extensionPath);
 
         if (0 < sizeof($possiblePerformanceKillers)) {
             foreach ($possiblePerformanceKillers as $possiblePerformanceKiller) {
-               Logger::setResultValue($extensionPath, $this->_pluginName, $possiblePerformanceKiller, count($possiblePerformanceKillers));
+               Logger::setResultValue($this->_extensionPath, $this->_pluginName, $possiblePerformanceKiller, count($possiblePerformanceKillers));
                
                IssueHandler::addIssue(new Issue(
-                       array(   "extension"  => $extensionPath ,"checkname" => $this->_pluginName,
+                       array(   "extension"  => $this->_extensionPath ,"checkname" => $this->_pluginName,
                                 "type"       => 'performance_leak',
                                 "comment"    => $possiblePerformanceKiller . ' (' . 
                            count($possiblePerformanceKillers) . 'times)',

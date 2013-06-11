@@ -4,22 +4,20 @@ namespace SourceCodeComplexity;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\Plugin\PluginAbstract as Plugin;
+use Netresearch\Plugin\Plugin as Plugin;
 
 class SourceCodeComplexity extends Plugin
 {
     protected $_results;
 
     /**
-     *
-     * @param string $extensionPath the path to the extension to check
+     * Execute the SourceCodeComplexity plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
-        parent::execute($extensionPath);
-        $this->_executePHPDepend($extensionPath);
-        $this->_executePHPCpd($extensionPath);
-        $this->_executePHPMessDetector($extensionPath);
+        $this->_executePHPDepend($this->_extensionPath);
+        $this->_executePHPCpd($this->_extensionPath);
+        $this->_executePHPMessDetector($this->_extensionPath);
     }
 
     /**
@@ -30,9 +28,9 @@ class SourceCodeComplexity extends Plugin
     protected function _executePHPMessDetector($extensionPath)
     {
         $this->setExecCommand('vendor/phpmd/phpmd/src/bin/phpmd');
-        $params = array($extensionPath, 'text', $this->_settings->phpMessDetector->useRuleSets);
+        $options = array($extensionPath, 'text', $this->_settings->phpMessDetector->useRuleSets);
         try {
-            $mdResults = $this->_executePhpCommand($this->_config, $params);
+            $mdResults = $this->_executePhpCommand($options);
         } catch (\Zend_Exception $e) {
             return;
         }
@@ -79,11 +77,11 @@ class SourceCodeComplexity extends Plugin
         $tempXml = str_replace('.xml', (string) $this->_config->token . '.xml', $this->_settings->phpDepend->tmpXmlFilename);
         $usedMetrics = $this->_settings->phpDepend->useMetrics->toArray();
         $this->setExecCommand('vendor/pdepend/pdepend/src/bin/pdepend');
-        $params = array(
+        $options = array(
             'summary-xml' => $tempXml,
         );
         try {
-            $this->_executePhpCommand($this->_config, $params);
+            $this->_executePhpCommand($options);
         } catch (\Zend_Exception $e) {
             return;
         }

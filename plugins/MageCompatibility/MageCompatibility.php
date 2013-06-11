@@ -4,14 +4,16 @@ namespace MageCompatibility;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
-use Netresearch\Plugin\PluginAbstract as Plugin;
+use Netresearch\Plugin\Plugin as Plugin;
 use \dibi as dibi;
 
 class MageCompatibility extends Plugin
 {
-    public function execute($extensionPath)
+    /**
+     * Execute the MageCompatibility plugin
+     */
+    protected function _execute()
     {
-        parent::execute($extensionPath);
         try{
             $this->_connectTagDatabase();
 
@@ -23,7 +25,7 @@ class MageCompatibility extends Plugin
             $classes = $extension->getUsedMagentoClasses();
             
             IssueHandler::addIssue(new Issue(
-                    array(  "extension" =>  $extensionPath,
+                    array(  "extension" =>  $this->_extensionPath,
                             "checkname" => $this->_pluginName,
                             "type"      => 'mage_compatibility',
                             "comment"   => sprintf('Extension uses %d classes and %d methods of Magento core',$classes->count(),$methods->count()),
@@ -99,7 +101,7 @@ class MageCompatibility extends Plugin
                 }
                 if (0 < strlen($message)) {
                     IssueHandler::addIssue(new Issue(
-                            array(  "extension" => $extensionPath ,"checkname" => $this->_pluginName,
+                            array(  "extension" => $this->_extensionPath ,"checkname" => $this->_pluginName,
                                     "type"      => 'mage_compatibility',
                                     "comment"   => sprintf("<error>Extension is not compatible to Magento %s</error>\n%s", $version, $message),
                                     "failed"    =>  true)));
@@ -108,7 +110,7 @@ class MageCompatibility extends Plugin
                 }
             }
             IssueHandler::addIssue(new Issue(
-                    array(  "extension" => $extensionPath ,"checkname" => $this->_pluginName,
+                    array(  "extension" => $this->_extensionPath ,"checkname" => $this->_pluginName,
                             "type"      => 'mage_compatibility',
                             "comment"   => 'Checked Magento versions: ' . implode(', ', $availableVersions) . "\n"
                             . '* Extension seems to support following Magento versions: ' . implode(', ', $compatibleVersions),
@@ -124,7 +126,7 @@ class MageCompatibility extends Plugin
             }
             if ($this->_containsNoLatestVersion(array_keys($incompatibleVersions), 'CE')) {
                 IssueHandler::addIssue(new Issue( array(
-                    "extension" => $extensionPath ,"checkname" => $this->_pluginName,
+                    "extension" => $this->_extensionPath ,"checkname" => $this->_pluginName,
                     "type"      => 'mage_compatibility',
                     "comment"   => sprintf('Extension supports Magento at least from CE version %s and EE version %s',
                      $this->_settings->min->ce, $this->_settings->min->ee),

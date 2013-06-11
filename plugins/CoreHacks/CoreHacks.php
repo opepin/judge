@@ -1,8 +1,6 @@
 <?php
 namespace CoreHacks;
 
-use Netresearch\Logger;
-use Netresearch\IssueHandler;
 use Netresearch\Plugin\CodeSniffer as Plugin;
 
 /**
@@ -17,14 +15,10 @@ class CoreHacks extends Plugin
     protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';    
     
     /**
-     * Execute the CoreHacks plugin (entry point)
-     *
-     * @param string $extensionPath the path to the extension to check
-     * @throws \Exception
+     * Execute the CoreHacks plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
-        parent::execute($extensionPath);
         $this->_checkCoreClasses();
         $this->_checkCoreCodePool();
     }
@@ -34,16 +28,15 @@ class CoreHacks extends Plugin
      */
     protected function _checkCoreClasses()
     {
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/CoreHacks',
             'extensions' => 'php',
-            'report'     => 'checkstyle',
             'ignore'     => '*/app/code/core/*',
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
             'Core Hack for class "%s"',
-            array('CoreHacks.Class.Override')
+            'CoreHacks.Class.Override'
         );
         $this->_addPhpCsIssues($parsedResult, 'corehack');
     }

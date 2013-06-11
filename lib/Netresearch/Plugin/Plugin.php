@@ -9,7 +9,7 @@ use Netresearch\Logger;
 /**
  * Base class for plugins
  */
-abstract class PluginAbstract
+abstract class Plugin
 {
     const OCCURRENCES_LIST_PREFIX = '  * ';
     const OCCURRENCES_LIST_SUFFIX = PHP_EOL;
@@ -63,21 +63,27 @@ abstract class PluginAbstract
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
+        $this->_execute();
     }
 
+    /**
+     * Actual execution method, should be implemented in descendants
+     *
+     * @return void
+     */
+    abstract protected function _execute();
 
     /**
-     * @param Config $config
      * @param array $additionalOptions
      * @return array
      */
-    protected function _executePhpCommand(Config $config, array $additionalOptions)
+    protected function _executePhpCommand(array $additionalOptions)
     {
         exec('which php', $response);
         $this->_phpBin = reset($response);
 
-        if (!empty($config->phpOptions)) {
-            foreach ($config->phpOptions as $option) {
+        if (!empty($this->_config->phpOptions)) {
+            foreach ($this->_config->phpOptions as $option) {
                 $this->_phpBin .= ' -d ' . $option;
             }
         }
@@ -131,7 +137,7 @@ abstract class PluginAbstract
 
     /**
      * @param $command
-     * @return PluginAbstract
+     * @return Plugin
      */
     public function setExecCommand($command)
     {
