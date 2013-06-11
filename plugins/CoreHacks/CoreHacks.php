@@ -30,7 +30,7 @@ class CoreHacks extends Plugin
     }
     
     /**
-     * Looks for core classes overrides
+     * Looks for core classes overrides in local and community pools
      */
     protected function _checkCoreClasses()
     {
@@ -38,6 +38,7 @@ class CoreHacks extends Plugin
             'standard'   => __DIR__ . '/CodeSniffer/Standards/CoreHacks',
             'extensions' => 'php',
             'report'     => 'checkstyle',
+            'ignore'     => '*/app/code/core/*',
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedResult = $this->_parsePhpCsResult($csResults,
