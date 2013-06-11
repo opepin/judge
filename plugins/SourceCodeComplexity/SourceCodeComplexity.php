@@ -11,9 +11,15 @@ class SourceCodeComplexity extends Plugin
     
     CONST PHP_MESS_DETECTOR_COMMAND = 'vendor/phpmd/phpmd/src/bin/phpmd';
     
+    CONST PHP_DEPEND_COMMAND = 'vendor/pdepend/pdepend/src/bin/pdepend';
+    
+    CONST PHP_DEPEND_TEMP_FILE_NAME = 'temp.xml';
+    
     CONST PHP_CPD_MIN_LINES = 5;
     
     CONST PHP_CPD_MIN_TOKENS = 70;
+    
+    private static $_usedMetrics = array('ccn', 'ccn2');
     /**
      * Checker entry point
      * 
@@ -23,8 +29,8 @@ class SourceCodeComplexity extends Plugin
     {
         parent::execute($extensionPath);
         $this->_checkWithPhpMessDetector();
-        $this->_executePHPDepend($extensionPath);
         $this->_checkWithPhpCopyPasteDetector();
+        $this->_checkWithPhpDepend();
     }
 
     /**
@@ -116,42 +122,31 @@ class SourceCodeComplexity extends Plugin
     }
     
     /**
-     * checks the extensions complexity with phpDepend and returns the scoring
-     *
-     * @param string $extensionPath extension to check
+     * Checks the extension with PHP Depend 
      */
-    protected function _executePHPDepend($extensionPath)
+    protected function _checkWithPhpDepend()
     {
-        $metricViolations = 0;
-        $tempXml = str_replace('.xml', (string) $this->_config->token . '.xml', $this->_settings->phpDepend->tmpXmlFilename);
-        $usedMetrics = $this->_settings->phpDepend->useMetrics->toArray();
-        $this->setExecCommand('vendor/pdepend/pdepend/src/bin/pdepend');
-        $params = array(
-            'summary-xml' => $tempXml,
-        );
+        $this->setExecCommand(self::PHP_DEPEND_COMMAND);
+        $params = array('summary-xml' => self::PHP_DEPEND_TEMP_FILE_NAME);
+        $this->_executePhpCommand($this->_config, $params);
         try {
-            $this->_executePhpCommand($this->_config, $params);
-        } catch (\Zend_Exception $e) {
+            $xml = simplexml_load_file(self::PHP_DEPEND_TEMP_FILE_NAME);
+        } catch (Exception $e) {
+            unlink(self::PHP_DEPEND_TEMP_FILE_NAME);
             return;
         }
-        $metrics = current(simplexml_load_file($tempXml));
-        Logger::setResultValue($extensionPath, $this->_pluginName, 'metrics', $metrics);
-        foreach ($metrics as $metricName => $metricValue) {
-            if (in_array($metricName, $usedMetrics)
-                && $this->_settings->phpDepend->{$metricName} < $metricValue) {
-                IssueHandler::addIssue(new Issue(
-                        array(  "extension" =>  $extensionPath,
-                                "checkname" => $this->_pluginName,
-                                "type"      => $metricName,
-                                "comment"   => $metricValue,
-                                "failed"        =>  true)));  
-                
-                ++ $metricViolations;
-            }
+        $lloc = (int)$xml->attributes()->lloc > 0 ? (int)$xml->attributes()->lloc : 1;
+        foreach (self::$_usedMetrics as $metric) {
+            $issue = array(array(
+                'files'       => '',
+                'comment'     => round(((float)$xml->attributes()->$metric)/$lloc, 2),
+                'occurrences' => 1,
+            ));
+            $this->_addIssues($issue, $metric);
         }
-        unlink($tempXml);
+        unlink(self::PHP_DEPEND_TEMP_FILE_NAME);
     }
-
+    
     /**
      * Checks the extension with php copy and paste detector
      */
