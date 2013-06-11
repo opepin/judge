@@ -8,12 +8,6 @@ use Netresearch\Plugin\PluginAbstract as Plugin;
 
 class CheckStyle extends Plugin
 {
-    protected $_results;
-    protected $_uniqueIssues = array(
-        'errors'    => array(),
-        'warnings'  => array()
-    );
-
     /**
      * Execution command
      * @var string
@@ -21,101 +15,116 @@ class CheckStyle extends Plugin
     protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
 
     /**
-     *
+     * Plugin entry point to check code styling
+     * 
      * @param string $extensionPath the path to the extension to check
      */
     public function execute($extensionPath)
     {
         parent::execute($extensionPath);
         $params = array(
-            'ignore' => '*/jquery*',
-            'standard' => $this->_settings->standardToUse
+            'ignore'   => '*/jquery*',
+            'standard' => __DIR__ . '/CodeSniffer/Standards/Magento',
+            'report'   => 'checkstyle',
         );
 
+        $csResults = $this->_executePhpCommand($this->_config, $params);
+        $parsedResult = $this->_parseCheckStylePhpCsResult($csResults);
+        $this->_addCheckStylePhpCsIssues($parsedResult);
+    }
+    
+    /**
+     * Parses php code sniffer execution xml into array with predifined structure
+     *
+     * @param array  $phpcsOutput
+     * @return array
+     */
+    protected function _parseCheckStylePhpCsResult($phpcsOutput)
+    {
+        $resultErrors = array();
+        $resultWarnings = array();
+        $messages = array();
+        $phpcsOutput = implode('', $phpcsOutput);
+
         try {
-            $csResults = $this->_executePhpCommand($this->_config, $params);
-        } catch (\Zend_Exception $e) {
-            return;
+            $xml = simplexml_load_string($phpcsOutput);
+        } catch(\Exception $e) {
+            return array();
         }
-
-        $csResults = $this->_getClearedResults($csResults);
-        // more issues found than allowed -> log them
-        if ($this->_settings->allowedIssues < sizeof($csResults)) {
-            foreach ($csResults as $issue) {
-                $this->_addToUniqueIssues($issue);
+        $files = $xml->xpath('file');
+        if (!$files) {
+            return array();
+        }
+        foreach ($files as $file) {
+            $filename = (string)$file->attributes()->name;
+            $errors = $file->xpath('error');
+            if (!$errors) {
+                continue;
             }
-            $this->_logUniqueIssues();
+            foreach ($errors as $error) {
+                $message = (string)$error->attributes()->message;
+                $lineNumber = (string)$error->attributes()->line;
+                $source = (string)$error->attributes()->source;
+                if ((string)$error->attributes()->severity == 'warning') {
+                    if (!array_key_exists($source, $resultWarnings)) {
+                        $resultWarnings[$source] = array();
+                    }
+                    $resultWarnings[$source][] = $filename . ':' . $lineNumber;
+                } else {
+                    if (!array_key_exists($source, $resultErrors)) {
+                        $resultErrors[$source] = array();
+                    }
+                    $resultErrors[$source][] = $filename . ':' . $lineNumber;
+                }
+                if (!array_key_exists($source, $messages)) {
+                    $message = strpos($message, ';') !== false ? substr($message, 0, strpos($message, ';')) : $message;
+                    $messages[$source] = $message;
+                }
+            }
         }
-    }
 
+        $return = array();
+        foreach ($resultWarnings as $type => $files) {
+            $occurences = count($files);
+            $files = array_unique($files);
+            sort($files);
+            $return[] = array(
+                'type'        => 'warning',
+                'files'       => $files,
+                'comment'     => $messages[$type],
+                'occurrences' => $occurences,
+            );
+        }          
+        foreach ($resultErrors as $type => $files) {
+            $occurences = count($files);
+            $files = array_unique($files);
+            sort($files);
+            $return[] = array(
+                'type'        => 'error',
+                'files'       => $files,
+                'comment'     => $messages[$type],
+                'occurrences' => $occurences,
+            );
+        }
+        return $return;
+    }
+    
     /**
+     * Adds issue(s) to result with specified comment, files, occurrences, type
      *
-     * removes header and so on from result
-     *
-     * @param array $results
-     * @return array the
+     * @param array $issues
      */
-    protected function _getClearedResults(array $results)
+    protected function _addCheckStylePhpCsIssues($issues)
     {
-        $newResults = array();
-        foreach ($results as $resultLine) {
-            if (false !== strpos($resultLine, '|') &&
-                (false !== strpos(strtolower($resultLine), 'error') ||
-                 false !== strpos(strtolower($resultLine), 'warning'))) {
-                $newResults[] = $resultLine;
-            }
+        foreach ($issues as $issue) {
+            IssueHandler::addIssue(new Issue( array(
+                "extension"   => $this->_extensionPath,
+                "checkname"   => $this->_pluginName,
+                "type"        => $issue['type'],
+                "comment"     => $issue['comment'],
+                "files"       => $issue['files'],
+                "occurrences" => $issue['occurrences'],
+            )));
         }
-        $results = $newResults;
-        return $results;
-    }
-
-    /**
-     * counts the unique issues
-     *
-     * @param string $issue
-     */
-    protected function _addToUniqueIssues($issue)
-    {
-        $issueData = explode('|', $issue);
-        if (3 == count($issueData)) {
-            $issueClass     = trim($issueData[1]);
-            $issueMessage = trim($issueData[2]);
-            if (false !== strpos($issueData[2], ';')) {
-                $issueMessage = substr(
-                    $issueMessage,
-                    0,
-                    strpos($issueMessage, ';')
-                );
-            }
-            if (false === array_key_exists($issueClass, $this->_uniqueIssues)) {
-                $this->_uniqueIssues[$issueClass] = array();
-            }
-            if (false === array_key_exists($issueMessage, $this->_uniqueIssues[$issueClass])) {
-                $this->_uniqueIssues[$issueClass][$issueMessage] = 1;
-            }
-            if (true === array_key_exists($issueMessage, $this->_uniqueIssues[$issueClass])) {
-                $this->_uniqueIssues[$issueClass][$issueMessage] ++;
-            }
-        }
-    }
-
-    /**
-     * creates a summaritze of the unique issues
-     */
-    protected function _logUniqueIssues()
-    {
-        foreach ($this->_uniqueIssues as $issueType => $uniqueIssues) {
-            foreach ($uniqueIssues as $message => $count) {
-                IssueHandler::addIssue(new Issue(
-                        array(
-                            'extension' =>  $this->_extensionPath,
-                            'checkname' =>  $this->_pluginName,
-                            'type'      =>  strtolower($issueType),
-                            'comment'   =>  $message . ' (' . $count . ' times).',
-                            'failed'    =>  true
-                        )
-                ));
-            }
-        }
-    }
+    }    
 }
