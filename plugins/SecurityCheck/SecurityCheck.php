@@ -3,7 +3,7 @@ namespace SecurityCheck;
 
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
-use Netresearch\Plugin as Plugin;
+use Netresearch\Plugin\CodeSniffer as Plugin;
 
 class SecurityCheck extends Plugin
 {

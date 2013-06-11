@@ -4,8 +4,7 @@ namespace MageCompatibility;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
-use Netresearch\Plugin as Plugin;
-
+use Netresearch\Plugin\PluginAbstract as Plugin;
 use \dibi as dibi;
 
 class MageCompatibility extends Plugin
