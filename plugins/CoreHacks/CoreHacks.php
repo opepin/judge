@@ -25,10 +25,20 @@ class CoreHacks extends Plugin
     public function execute($extensionPath)
     {
         parent::execute($extensionPath);
+        $this->_checkCoreClasses();
+        $this->_checkCoreCodePool();
+    }
+    
+    /**
+     * Looks for core classes overrides in local and community pools
+     */
+    protected function _checkCoreClasses()
+    {
         $addionalParams = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/CoreHacks',
             'extensions' => 'php',
             'report'     => 'checkstyle',
+            'ignore'     => '*/app/code/core/*',
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedResult = $this->_parsePhpCsResult($csResults,
@@ -36,5 +46,30 @@ class CoreHacks extends Plugin
             array('CoreHacks.Class.Override')
         );
         $this->_addPhpCsIssues($parsedResult, 'corehack');
+    }
+    
+    /**
+     * Looks for files in "core" code pool
+     */
+    protected function _checkCoreCodePool()
+    {
+        $files = array();
+        /** @var \RecursiveDirectoryIterator $dir */
+        $dir = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->_extensionPath));
+
+        while ($dir->valid()) {
+            if (!$dir->isDot() && strpos($dir->getSubPath(), 'app/code/core') !== false) {
+                $files[] = $dir->getSubPathname();
+            }
+            $dir->next();
+        }
+        if (!empty($files)) {
+            $this->_addIssue(array(
+                'type'        => 'corehack',
+                'comment'     => 'Core Hacks for "core" code pool',
+                'files'       => $files,
+                'occurrences' => count($files),
+            ));
+        }
     }
 }
