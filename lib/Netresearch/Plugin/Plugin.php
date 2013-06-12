@@ -88,14 +88,15 @@ abstract class Plugin
             }
         }
 
+        $execCommand = $this->_execCommand;
         if (!empty($additionalOptions)) {
             foreach ($additionalOptions as $key => $value) {
-                $this->_execCommand .= is_string($key) ? ' --' . $key . '=' . $value
+                $execCommand .= is_string($key) ? ' --' . $key . '=' . $value
                     : ' ' . $value;
             }
         }
 
-        $command = $this->_phpBin . ' ' . $this->_execCommand;
+        $command = $this->_phpBin . ' ' . $execCommand;
         $command .= !in_array($this->_extensionPath, $additionalOptions) ? ' ' . $this->_extensionPath : '';
 
         return $this->_executeCommand($command);
