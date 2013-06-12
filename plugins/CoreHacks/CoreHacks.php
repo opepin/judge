@@ -12,7 +12,7 @@ class CoreHacks extends Plugin
      * Execution command
      * @var string
      */
-    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';    
+    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
     
     /**
      * Execute the CoreHacks plugin
@@ -35,7 +35,7 @@ class CoreHacks extends Plugin
         );
         $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
-            'Core Hack for class "%s"',
+            'Class "%s" has a forbidden namespace',
             'CoreHacks.Class.Override'
         );
         $this->_addPhpCsIssues($parsedResult, 'corehack');
@@ -59,7 +59,7 @@ class CoreHacks extends Plugin
         if (!empty($files)) {
             $this->_addIssue(array(
                 'type'        => 'corehack',
-                'comment'     => 'Core Hacks for "core" code pool',
+                'comment'     => 'Usage of "core" code pool',
                 'files'       => $files,
                 'occurrences' => count($files),
             ));
