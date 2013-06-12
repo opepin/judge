@@ -16,7 +16,7 @@ abstract class CodeSniffer extends Plugin
     {
         // set option report format, _parsePhpCsResult method depends on checkstyle
         $additionalOptions['report'] = 'checkstyle';
-        parent::_executePhpCommand($additionalOptions);
+        return parent::_executePhpCommand($additionalOptions);
     }
 
     /**
@@ -33,7 +33,6 @@ abstract class CodeSniffer extends Plugin
     {
         $result = array();
         $sourceToListen = (array) $sourceToListen;
-        $severityToListen = (array) $severityToListen;
         $phpcsOutput = implode('', $phpcsOutput);
 
         try {
