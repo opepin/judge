@@ -11,7 +11,7 @@ class SourceCodeComplexity extends Plugin
 
     CONST PHP_DEPEND_COMMAND = 'vendor/pdepend/pdepend/src/bin/pdepend';
 
-    CONST PHP_DEPEND_TEMP_FILE_NAME_SUFFIX = 'php_depend.xml';
+    CONST PHP_DEPEND_TEMP_FILE_NAME_FORMAT = 'php_depend_%s.xml';
 
     CONST PHP_CPD_MIN_LINES = 5;
 
@@ -44,30 +44,12 @@ class SourceCodeComplexity extends Plugin
             __DIR__ . '/PhpMessDetector/ruleset.xml'
         );
         $mdResults = $this->_executePhpCommand($options);
-        $parsedResult = $this->_parsePhpMdResults($mdResults);
-        $this->_addIssues($parsedResult, 'mess_detector');
-    }
-
-    /**
-     * Parses results provided by PHP Mess Detector into array with predefined structure
-     *
-     * @param array $phpmdOutput
-     * @return array
-     */
-    protected function _parsePhpMdResults($phpmdOutput)
-    {
-        $result = array();
-        $phpmdOutput = implode('', $phpmdOutput);
-
-        try {
-            $xml = simplexml_load_string($phpmdOutput);
-        } catch(\Exception $e) {
-            return $result;
+        if (!($xml = $this->_simplexml_load(implode('', $mdResults)))
+            || !($files = $xml->xpath('file'))) {
+            return;
         }
-        $files = $xml->xpath('file');
-        if (!$files) {
-            return $result;
-        }
+
+        $issues = array();
         foreach ($files as $file) {
             $filename = (string)$file->attributes()->name;
             $violations = $file->xpath('violation');
@@ -75,39 +57,25 @@ class SourceCodeComplexity extends Plugin
                 continue;
             }
             foreach ($violations as $violation) {
-                $type = (string)$violation;
+                $message = (string)$violation;
                 $lineNumber = (string)$violation->attributes()->beginline;
-                if (!array_key_exists($type, $result)) {
-                    $result[$type] = array();
+                if (!array_key_exists($message, $issues)) {
+                    $issues[$message] = array();
                 }
-                $result[$type][] = $filename . ':' . $lineNumber;
+                $issues[$message][] = $filename . ':' . $lineNumber;
             }
         }
-        $return = array();
-        foreach ($result as $type => $files) {
-            $occurences = count($files);
+
+        foreach ($issues as $message => $files) {
+            $occurrences = count($files);
             $files = array_unique($files);
             sort($files);
-            $return[] = array(
+            $this->_addIssue(array(
+                'type'        => 'mess_detector',
                 'files'       => $files,
-                'comment'     => trim($type),
-                'occurrences' => $occurences,
-            );
-        }
-        return $return;
-    }
-
-    /**
-     * Adds issue(s) to result with specified comment, files, occurrences, type
-     *
-     * @param array $issues
-     * @param string $type
-     */
-    protected function _addIssues($issues, $type)
-    {
-        foreach ($issues as $issue) {
-            $issue['type'] = $type;
-            $this->_addIssue($issue);
+                'comment'     => trim($message),
+                'occurrences' => $occurrences,
+            ));
         }
     }
 
@@ -117,12 +85,12 @@ class SourceCodeComplexity extends Plugin
     protected function _checkWithPhpDepend()
     {
         $this->setExecCommand(self::PHP_DEPEND_COMMAND);
-        $params = array('summary-xml' => self::PHP_DEPEND_TEMP_FILE_NAME_SUFFIX);
-        $this->_executePhpCommand($params);
-        try {
-            $xml = simplexml_load_file(self::PHP_DEPEND_TEMP_FILE_NAME_SUFFIX);
-        } catch (\Exception $e) {
-            unlink(self::PHP_DEPEND_TEMP_FILE_NAME_SUFFIX);
+        $tmpFilePath = $this->_config->getTempDirPath()
+            . sprintf(self::PHP_DEPEND_TEMP_FILE_NAME_FORMAT, uniqid());
+        $this->_executePhpCommand(array('summary-xml' => $tmpFilePath));
+        $xml = $this->_simplexml_load(file_get_contents($tmpFilePath));
+        unlink($tmpFilePath);
+        if (!$xml) {
             return;
         }
         if (($lloc = (int)$xml->attributes()->lloc) === 0) {
@@ -130,11 +98,10 @@ class SourceCodeComplexity extends Plugin
         }
         foreach (self::$_usedMetrics as $metric) {
             $this->_addIssue(array(
-                'type'        => $metric,
-                'comment'     => round(((float)$xml->attributes()->$metric)/$lloc, 2),
+                'type'    => $metric,
+                'comment' => round(((float)$xml->attributes()->$metric)/$lloc, 2),
             ));
         }
-        unlink(self::PHP_DEPEND_TEMP_FILE_NAME_SUFFIX);
     }
 
     /**

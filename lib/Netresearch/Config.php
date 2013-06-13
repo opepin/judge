@@ -15,6 +15,20 @@ class Config extends \Zend_Config_Ini
 
     protected $_addedPermissions;
     protected $_removedPermissions;
+
+    /**
+     * Project base dir path
+     *
+     * @var string
+     */
+    protected $_baseDirPath;
+
+    /**
+     * Path to temp dir
+     *
+     * @var string
+     */
+    protected $_tempDirPath;
     
     public function setOutput(OutputInterface $output)
     {
@@ -25,6 +39,41 @@ class Config extends \Zend_Config_Ini
     {
         $this->_command = $command;
     }
+
+    /**
+     * Getter for base dir path
+     *
+     * @return string
+     */
+    public function getBaseDirPath()
+    {
+        return $this->_baseDirPath;
+    }
+
+    /**
+     * Setter for base dir path
+     *
+     * @param $baseDirPath
+     */
+    public function setBaseDirPath($baseDirPath)
+    {
+        $this->_baseDirPath = $baseDirPath;
+    }
+
+    /**
+     * Getter for temp dir path
+     *
+     * @return string
+     */
+    public function getTempDirPath()
+    {
+        if (empty($this->_tempDirPath)) {
+            $path = $this->common->tempdir ? $this->common->tempdir : $this->getBaseDirPath() . 'tmp';
+            $this->_tempDirPath = realpath($path) . DIRECTORY_SEPARATOR;
+        }
+        return $this->_tempDirPath;
+    }
+
 
     /**
      * get target path

@@ -29,6 +29,20 @@ use \Exception as Exception;
  */
 class Evaluate extends Command
 {
+    /**
+     * Judge's configuration
+     *
+     * @var \Netresearch\Config
+     */
+    protected $config;
+
+    /**
+     * Judge base dir path
+     *
+     * @var string
+     */
+    protected $basePath;
+
     protected function configure()
     {
         $this->setName('evaluate');
@@ -51,6 +65,7 @@ class Evaluate extends Command
         $this->config = new Config($input->getOption('config'), null, array('allowModifications' => true));
         $this->config->setOutput($output);
         $this->config->setCommand($this);
+        $this->config->setBaseDirPath($this->getBasePath());
         if ($input->getOption('no-interaction')) {
             $this->config->disableInteractivity();
         }
@@ -186,9 +201,19 @@ class Evaluate extends Command
         }
     }
 
+    /**
+     * Define base path
+     *
+     * @return string
+     */
     protected function getBasePath()
     {
-        return realpath(dirname(__FILE__)) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR;
+        if (empty($this->basePath)) {
+            $this->basePath = realpath(dirname(__FILE__) . DIRECTORY_SEPARATOR
+                . '..' . DIRECTORY_SEPARATOR
+                . '..' . DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        }
+        return $this->basePath;
     }
 
     protected function generateResultHtml($extension)

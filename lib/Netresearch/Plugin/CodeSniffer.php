@@ -35,13 +35,8 @@ abstract class CodeSniffer extends Plugin
         $sourceToListen = (array) $sourceToListen;
         $phpcsOutput = implode('', $phpcsOutput);
 
-        try {
-            $xml = simplexml_load_string($phpcsOutput);
-        } catch(\Exception $e) {
-            return $result;
-        }
-        $files = $xml->xpath('file');
-        if (!$files) {
+        if (!($xml = $this->_simplexml_load($phpcsOutput))
+            || !($files = $xml->xpath('file'))) {
             return $result;
         }
         foreach ($files as $file) {
@@ -68,13 +63,13 @@ abstract class CodeSniffer extends Plugin
 
         $issues = array();
         foreach ($result as $message => $files) {
-            $occurences = count($files);
+            $occurrences = count($files);
             $files = array_unique($files);
             sort($files);
             $issues[] = array(
                 'files'       => $files,
                 'comment'     => sprintf($commentFormat, $message),
-                'occurrences' => $occurences,
+                'occurrences' => $occurrences,
             );
         }
         return $issues;

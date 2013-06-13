@@ -11,10 +11,9 @@ use Netresearch\Logger;
  */
 abstract class Plugin
 {
-    const OCCURRENCES_LIST_PREFIX = '  * ';
-    const OCCURRENCES_LIST_SUFFIX = PHP_EOL;
+    const OCCURRENCES_LIST_ITEM_PREFIX = '  * ';
+    const OCCURRENCES_LIST_ITEM_SUFFIX = PHP_EOL;
 
-    protected $_phpBin;
     /**
      * Execution command
      * @var string
@@ -80,11 +79,12 @@ abstract class Plugin
     protected function _executePhpCommand(array $additionalOptions)
     {
         exec('which php', $response);
-        $this->_phpBin = reset($response);
+        // error reporting E_ALL^E_NOTICE
+        $command = reset($response) . ' -d error_reporting=30711';
 
         if (!empty($this->_config->phpOptions)) {
             foreach ($this->_config->phpOptions as $option) {
-                $this->_phpBin .= ' -d ' . $option;
+                $command .= ' -d ' . $option;
             }
         }
 
@@ -96,7 +96,7 @@ abstract class Plugin
             }
         }
 
-        $command = $this->_phpBin . ' ' . $execCommand;
+        $command .= ' ' . $execCommand;
         $command .= !in_array($this->_extensionPath, $additionalOptions) ? ' ' . $this->_extensionPath : '';
 
         return $this->_executeCommand($command);
@@ -167,5 +167,28 @@ abstract class Plugin
             ),
             $issue
         )));
+    }
+
+    /**
+     * Load simple xml safely and log errors if occurred
+     *
+     * @param string $xml
+     * @return \SimpleXMLElement
+     */
+    protected function _simplexml_load($xml)
+    {
+        libxml_use_internal_errors(true);
+        if (!($xml = simplexml_load_string($xml))) {
+            $errors = 'Failed loading XML' . PHP_EOL;
+            foreach(libxml_get_errors() as $error) {
+                $errors .= "\t* " . trim($error->message) . PHP_EOL;
+            }
+            ob_start();
+            debug_print_backtrace();
+            $errors .= 'Back trace:' . PHP_EOL . ob_get_contents() . PHP_EOL;
+            ob_end_clean();
+            Logger::log($errors);
+        }
+        return $xml;
     }
 }

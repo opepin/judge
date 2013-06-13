@@ -27,7 +27,9 @@ class Rewrites extends Plugin
         $xpathFormat = '/config/global/%s//rewrite/..';
         $groupTypes = array('blocks', 'models', 'helpers');
         foreach ($configFiles as $configFile) {
-            $config = simplexml_load_file($configFile);
+            if (!($config = $this->_simplexml_load($configFile))) {
+                continue;
+            }
             foreach ($groupTypes as $groupType) {
                 foreach ($config->xpath(sprintf($xpathFormat, $groupType)) as $groupRewrites) {
                     $group = $groupRewrites->getName();
@@ -74,10 +76,10 @@ class Rewrites extends Plugin
                 $comment = sprintf('Found %d %s %s(s):' . PHP_EOL,
                     count($items), rtrim($group, 's'), str_replace('_', ' ', $type));
                 foreach ($items as $item) {
-                    $comment .= self::OCCURRENCES_LIST_PREFIX
+                    $comment .= self::OCCURRENCES_LIST_ITEM_PREFIX
                         . (isset($item['area']) ? sprintf('%s area - ', ucfirst($item['area'])) : '')
                         . sprintf('%s => %s', $item['from'], $item['to'])
-                        . self::OCCURRENCES_LIST_SUFFIX;
+                        . self::OCCURRENCES_LIST_ITEM_SUFFIX;
                 }
                 $this->_addIssue(array(
                     'type'        => $type,
