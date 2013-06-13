@@ -93,21 +93,22 @@ class SecurityCheck extends Plugin
     protected function _checkDangerousFunctions()
     {
         $addionalParams = array(
-            'standard'   => __DIR__ . '/CodeSniffer/Standards/DangerousFunctions',
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/Functions',
             'extensions' => 'php,phtml',
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedResult = $this->_parsePhpCsResult($csResults,
-            'Dangerous function "%s" call',
-            array('DangerousFunctions.DangerousFunctions.Config',
-                'DangerousFunctions.DangerousFunctions.Cookie',
-                'DangerousFunctions.DangerousFunctions.Eval',
-                'DangerousFunctions.DangerousFunctions.Header',
-                'DangerousFunctions.DangerousFunctions.Mail',
-                'DangerousFunctions.DangerousFunctions.Shell',
-                'DangerousFunctions.DangerousFunctions.Socket',
+            'Avoidable function "%s" call',
+            array(
+                'Functions.AvoidableCalls.Config',
+                'Functions.AvoidableCalls.Cookie',
+                'Functions.AvoidableCalls.Eval',
+                'Functions.AvoidableCalls.Header',
+                'Functions.AvoidableCalls.Mail',
+                'Functions.AvoidableCalls.Shell',
+                'Functions.AvoidableCalls.Socket',
             )
         );
-        $this->_addPhpCsIssues($parsedResult, 'bad_functions');        
+        $this->_addPhpCsIssues($parsedResult, 'avoidable_calls');
     }
 }

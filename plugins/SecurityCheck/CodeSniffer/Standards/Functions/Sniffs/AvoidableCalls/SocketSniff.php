@@ -1,6 +1,6 @@
 <?php
-class DangerousFunctions_Sniffs_DangerousFunctions_SocketSniff
-    extends DangerousFunctions_Sniffs_DangerousFunctions_SniffAbstract
+class Functions_Sniffs_AvoidableCalls_SocketSniff
+    extends Functions_Sniffs_AvoidableCalls_SniffAbstract
 {
     protected $_exactForbidden = array(
         'fsockopen',

@@ -1,5 +1,5 @@
 <?php
-abstract class DangerousFunctions_Sniffs_DangerousFunctions_SniffAbstract
+abstract class Functions_Sniffs_AvoidableCalls_SniffAbstract
     implements PHP_CodeSniffer_Sniff
 {
     protected $_exactForbidden = array();

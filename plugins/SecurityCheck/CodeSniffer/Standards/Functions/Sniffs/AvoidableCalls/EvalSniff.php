@@ -1,5 +1,5 @@
 <?php
-class DangerousFunctions_Sniffs_DangerousFunctions_EvalSniff implements PHP_CodeSniffer_Sniff
+class Functions_Sniffs_AvoidableCalls_EvalSniff implements PHP_CodeSniffer_Sniff
 {
     public function register()
     {

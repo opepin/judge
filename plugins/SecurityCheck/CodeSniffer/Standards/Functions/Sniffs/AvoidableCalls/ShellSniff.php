@@ -1,6 +1,6 @@
 <?php
-class DangerousFunctions_Sniffs_DangerousFunctions_ShellSniff
-    extends DangerousFunctions_Sniffs_DangerousFunctions_SniffAbstract
+class Functions_Sniffs_AvoidableCalls_ShellSniff
+    extends Functions_Sniffs_AvoidableCalls_SniffAbstract
 {
     protected $_exactForbidden = array(
         'exec',

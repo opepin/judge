@@ -1,6 +1,6 @@
 <?php
-class DangerousFunctions_Sniffs_DangerousFunctions_MailSniff
-    extends DangerousFunctions_Sniffs_DangerousFunctions_SniffAbstract
+class Functions_Sniffs_AvoidableCalls_MailSniff
+    extends Functions_Sniffs_AvoidableCalls_SniffAbstract
 {
     protected $_exactForbidden = array(
         'mail',
