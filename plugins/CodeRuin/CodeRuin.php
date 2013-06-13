@@ -1,8 +1,6 @@
 <?php
 namespace CodeRuin;
 
-use Netresearch\Logger;
-use Netresearch\IssueHandler;
 use Netresearch\Plugin\CodeSniffer as Plugin;
 
 class CodeRuin extends Plugin
@@ -14,14 +12,10 @@ class CodeRuin extends Plugin
     protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
 
     /**
-     * Execute the CodeRuin plugin (entry point)
-     *
-     * @param string $extensionPath the path to the extension to check
-     * @throws \Exception
+     * Execute the CodeRuin plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
-        parent::execute($extensionPath);
         $this->_checkComments();
         $this->_checkDieCall();
     }
@@ -31,15 +25,14 @@ class CodeRuin extends Plugin
      */
     protected function _checkComments()
     {
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/Comments',
             'extensions' => 'php,phtml',
-            'report'     => 'checkstyle',
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
             'Fix request "%s"',
-            array('Comments.Comments.FixRequest')
+            'Comments.Comments.FixRequest'
         );
         $this->_addPhpCsIssues($parsedResult, 'warning');
     }
@@ -49,15 +42,14 @@ class CodeRuin extends Plugin
      */
     protected function _checkDieCall()
     {    
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/DieExit',
             'extensions' => 'php,phtml',
-            'report'     => 'checkstyle',
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
             'Function "%s"',
-            array('DieExit.DieExit.DieExit')
+            'DieExit.DieExit.DieExit'
         );
         $this->_addPhpCsIssues($parsedResult, 'critical');
     }

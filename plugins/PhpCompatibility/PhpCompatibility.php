@@ -4,7 +4,7 @@ namespace PhpCompatibility;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue;
-use Netresearch\Plugin\PluginAbstract as Plugin;
+use Netresearch\Plugin\Plugin as Plugin;
 
 /**
  * check PHP compatibility
@@ -13,10 +13,11 @@ class PhpCompatibility extends Plugin
 {
     protected $_rewrites=array();
 
-    public function execute($extensionPath)
+    /**
+     * Execute the PhpCompatibility plugin
+     */
+    protected function _execute()
     {
-        parent::execute($extensionPath);
-
         $options = array(
             'recursive' => true,
             'report'    => 'summary'
@@ -29,7 +30,7 @@ class PhpCompatibility extends Plugin
 
         try {
             $phpci = new \PHP_CompatInfo($options);
-            $phpci->parse($extensionPath);
+            $phpci->parse($this->_extensionPath);
 
             $allResultsAtOnce = $phpci->toArray();
             foreach ($phpci->toArray() as $file => $result) {
@@ -56,7 +57,7 @@ class PhpCompatibility extends Plugin
 
         if ($min <= $this->_getVersionInt($this->_settings->min) && $maxReadable=='latest') {
            IssueHandler::addIssue(new Issue( array(
-               "extension"  =>  $extensionPath,
+               "extension"  =>  $this->_extensionPath,
                "checkname"  => $this->_pluginName,
                "type"       => 'php_compatibility',
                "comment"    => vsprintf('Extension is compatible to PHP from version %s up to latest versions',
@@ -66,7 +67,7 @@ class PhpCompatibility extends Plugin
             return ;
         }
         IssueHandler::addIssue(new Issue( array(
-            "extension" => $extensionPath,
+            "extension" => $this->_extensionPath,
             "checkname" => $this->_pluginName,
             "type"      => 'php_compatibility',
             "comment"   => vsprintf('Extension is compatible to PHP from version %s (instead of required %s) up to %s',

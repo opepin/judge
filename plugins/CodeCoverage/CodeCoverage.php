@@ -4,7 +4,7 @@ namespace CodeCoverage;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\Plugin\PluginAbstract as Plugin;
+use Netresearch\Plugin\Plugin as Plugin;
 use \dibi as dibi;
 
 class CodeCoverage extends Plugin
@@ -30,24 +30,20 @@ class CodeCoverage extends Plugin
     protected $_moduleNames;
 
     /**
-     * Execute the CodeCoverage plugin (entry point)
-     *
-     * @param string $extensionPath The path to the extension to check
-     * @throws \Exception
+     * Execute the CodeCoverage plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
         // xdebug is mandatory for code coverage test
         if (!extension_loaded('xdebug')) {
             throw new \Exception("The Xdebug extension is not loaded.");
         }
-        parent::execute($extensionPath);
 
         // scan for phpunit configuration
-        $this->_moduleNames = XmlReader::getModuleNames($extensionPath);
+        $this->_moduleNames = XmlReader::getModuleNames($this->_extensionPath);
         if (!empty($this->_moduleNames)) {
             try {
-                $this->_setupUnitTestEnvironment($extensionPath);
+                $this->_setupUnitTestEnvironment($this->_extensionPath);
             } catch (\Exception $e) {
                 $this->setUnfinishedIssue();
                 $this->_cleanTestEnvironment();
@@ -56,7 +52,7 @@ class CodeCoverage extends Plugin
                 return ;
             }
 
-            $this->_evaluateTestCoverage($extensionPath);
+            $this->_evaluateTestCoverage($this->_extensionPath);
         }
     }
 
@@ -178,7 +174,7 @@ class CodeCoverage extends Plugin
     }
 
     /**
-     * @param Zend_Config_Ini $databaseConfig
+     * @param \Zend_Config_Ini $databaseConfig
      * @param string $dbName
      */
     protected function _dropTestDatabase($databaseConfig, $dbName)
@@ -194,8 +190,8 @@ class CodeCoverage extends Plugin
      * gets the classes which are contained in a xml report file
      *
      * @param string $pathToXmlFile - the path to the report file
-     * @param string $xpathExpression - the xpath for retrieving the class names
-     * @return type
+     * @param array $xpathExpressions - the xpath for retrieving the class names
+     * @return array
      */
     protected function _getClasses($pathToXmlFile, $xpathExpressions)
     {
@@ -220,7 +216,7 @@ class CodeCoverage extends Plugin
      * evaluates the code coverage by PHPUnit tests
      *
      * @param string $pathToXmlReport - the xml containing the results for the classes
-     * @param string $xpathExpression - the xpath for retrievibng the results for the classes
+     * @param array $xpathExpressions - the xpath for retrievibng the results for the classes
      * @return array - the array containing the code coverage results
      */
     protected function _evaluateCodeCoverage($pathToXmlReport, $xpathExpressions)
@@ -323,7 +319,7 @@ class CodeCoverage extends Plugin
          * the test environment
          */
         if (!$this->_settings->jumpstormIniFile) {
-            throw new Exception("Required information missing in ini file: plugins.CodeCoverage.jumpstormIniFile");
+            throw new \Exception("Required information missing in ini file: plugins.CodeCoverage.jumpstormIniFile");
         }
 
         $jumpstormConfig = new \Zend_Config_Ini(
