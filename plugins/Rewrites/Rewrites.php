@@ -4,7 +4,7 @@ namespace Rewrites;
 use Netresearch\Logger;
 use Netresearch\IssueHandler;
 use Netresearch\Issue as Issue;
-use Netresearch\Plugin\PluginAbstract as Plugin;
+use Netresearch\Plugin\Plugin as Plugin;
 
 /**
  * count Magento core rewrites
@@ -12,13 +12,11 @@ use Netresearch\Plugin\PluginAbstract as Plugin;
 class Rewrites extends Plugin
 {
     /**
-     * @param $extensionPath
+     * Execute the Rewrites plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
-        parent::execute($extensionPath);
-
-        $command = sprintf('find "%s" -name config.xml', $extensionPath);
+        $command = sprintf('find "%s" -name config.xml', $this->_extensionPath);
         try {
             $configFiles = $this->_executeCommand($command);
         } catch (\Zend_Exception $e) {
@@ -81,14 +79,11 @@ class Rewrites extends Plugin
                         . sprintf('%s => %s', $item['from'], $item['to'])
                         . self::OCCURRENCES_LIST_SUFFIX;
                 }
-                IssueHandler::addIssue(new Issue(array(
-                    'extension'   => $extensionPath,
-                    'checkname'   => $this->_pluginName,
+                $this->_addIssue(array(
                     'type'        => $type,
                     'comment'     => trim($comment),
-                    'failed'      => true,
                     'occurrences' => count($items),
-                )));
+                ));
             }
         }
     }

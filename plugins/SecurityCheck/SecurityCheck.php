@@ -1,8 +1,6 @@
 <?php
 namespace SecurityCheck;
 
-use Netresearch\Logger;
-use Netresearch\IssueHandler;
 use Netresearch\Plugin\CodeSniffer as Plugin;
 
 class SecurityCheck extends Plugin
@@ -14,14 +12,10 @@ class SecurityCheck extends Plugin
     protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
 
     /**
-     * Execute the SecurityCheck plugin (entry point)
-     *
-     * @param string $extensionPath the path to the extension to check
-     * @throws \Exception
+     * Execute the SecurityCheck plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
-        parent::execute($extensionPath);
         $this->_checkGlobalVariables();
         $this->_checkOutput();
         $this->_checkForSQLQueries();
@@ -34,23 +28,21 @@ class SecurityCheck extends Plugin
      */
     protected function _checkOutput()
     {
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/OutputEchoPrint',
             'extensions' => 'php',
-            'report'     => 'checkstyle',
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedNotTemplatesResult = $this->_parsePhpCsResult($csResults,
             'Output construction "%s" (allowed only in templates)',
-            array('OutputEchoPrint.UnescapedOutput.EchoPrint')
+            'OutputEchoPrint.UnescapedOutput.EchoPrint'
         );
         
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/Output',
             'extensions' => 'php,phtml',
-            'report'     => 'checkstyle',
         );        
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedTemplatesResult = $this->_parsePhpCsResult($csResults,
             'Output construction %s',
             array('Output.Dump.VarDump', 'Output.Dump.VarExportPrintR', 'Output.Dump.ZendDebug')
@@ -64,15 +56,14 @@ class SecurityCheck extends Plugin
      */    
     protected function _checkGlobalVariables()
     {
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/GlobalVariables',
             'extensions' => 'php,phtml',
-            'report'     => 'checkstyle',
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
             'Global variable %s',
-            array('GlobalVariables.GlobalVariables.GlobalVariables')
+            'GlobalVariables.GlobalVariables.GlobalVariables'
         );
         $this->_addPhpCsIssues($parsedResult, 'params');
     }
@@ -82,13 +73,12 @@ class SecurityCheck extends Plugin
      */
     protected function _checkForSQLQueries()
     {
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/SQL',
             'extensions' => 'php',
-            'report'     => 'checkstyle',
             'ignore'     => '*/lib/*'
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
             'Raw %s query',
             array('SQL.RawSQL.Select', 'SQL.RawSQL.Delete', 'SQL.RawSQL.Update', 'SQL.RawSQL.Insert')
