@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<ruleset name="DangerousFunctions">
+    <description>Sniffs for security checker regarding dangerous functions usage</description>
+</ruleset>

@@ -25,6 +25,7 @@ class SecurityCheck extends Plugin
         $this->_checkGlobalVariables();
         $this->_checkOutput();
         $this->_checkForSQLQueries();
+        $this->_checkDangerousFunctions();
     }
     
     /**
@@ -93,5 +94,31 @@ class SecurityCheck extends Plugin
             array('SQL.RawSQL.Select', 'SQL.RawSQL.Delete', 'SQL.RawSQL.Update', 'SQL.RawSQL.Insert')
         );
         $this->_addPhpCsIssues($parsedResult, 'sql');
+    }
+    
+    /**
+     * Check for dangerous functions usage
+     *  - shell interactions
+     */
+    protected function _checkDangerousFunctions()
+    {
+        $addionalParams = array(
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/DangerousFunctions',
+            'extensions' => 'php,phtml',
+            'report'     => 'checkstyle',
+        );
+        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Dangerous function "%s" call',
+            array('DangerousFunctions.DangerousFunctions.Config',
+                'DangerousFunctions.DangerousFunctions.Cookie',
+                'DangerousFunctions.DangerousFunctions.Eval',
+                'DangerousFunctions.DangerousFunctions.Header',
+                'DangerousFunctions.DangerousFunctions.Mail',
+                'DangerousFunctions.DangerousFunctions.Shell',
+                'DangerousFunctions.DangerousFunctions.Socket',
+            )
+        );
+        $this->_addPhpCsIssues($parsedResult, 'bad_functions');        
     }
 }
