@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<ruleset name="AvoidableCalls">
+    <description>Sniffs for security checker regarding avoidable functions call</description>
+</ruleset>

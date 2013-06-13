@@ -19,6 +19,7 @@ class SecurityCheck extends Plugin
         $this->_checkGlobalVariables();
         $this->_checkOutput();
         $this->_checkForSQLQueries();
+        $this->_checkAvoidableFunctionsCalls();
     }
     
     /**
@@ -83,5 +84,32 @@ class SecurityCheck extends Plugin
             array('SQL.RawSQL.Select', 'SQL.RawSQL.Delete', 'SQL.RawSQL.Update', 'SQL.RawSQL.Insert')
         );
         $this->_addPhpCsIssues($parsedResult, 'sql');
+    }
+    
+    /**
+     * Check for dangerous functions usage
+     *  - shell interactions
+     */
+    protected function _checkAvoidableFunctionsCalls()
+    {
+        $options = array(
+            'standard'   => __DIR__ . '/CodeSniffer/Standards/Functions',
+            'extensions' => 'php,phtml',
+        );
+        $csResults = $this->_executePhpCommand($options);
+        $parsedResult = $this->_parsePhpCsResult($csResults,
+            'Avoidable function "%s" call',
+            array(
+                'Functions.AvoidableCalls.Config',
+                'Functions.AvoidableCalls.Cookie',
+                'Functions.AvoidableCalls.Eval',
+                'Functions.AvoidableCalls.Header',
+                'Functions.AvoidableCalls.Mail',
+                'Functions.AvoidableCalls.Mysql',
+                'Functions.AvoidableCalls.Shell',
+                'Functions.AvoidableCalls.Socket',
+            )
+        );
+        $this->_addPhpCsIssues($parsedResult, 'avoidable_calls');
     }
 }
