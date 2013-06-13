@@ -95,7 +95,6 @@ class SecurityCheck extends Plugin
         $addionalParams = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/DangerousFunctions',
             'extensions' => 'php,phtml',
-            'report'     => 'checkstyle',
         );
         $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
         $parsedResult = $this->_parsePhpCsResult($csResults,
