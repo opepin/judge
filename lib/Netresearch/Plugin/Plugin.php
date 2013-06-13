@@ -3,12 +3,13 @@ namespace Netresearch\Plugin;
 
 use Netresearch\Config;
 use Netresearch\IssueHandler;
-use Netresearch\Issue as Issue;
+use Netresearch\Issue;
+use Netresearch\Logger;
 
 /**
  * Base class for plugins
  */
-abstract class PluginAbstract
+abstract class Plugin
 {
     const OCCURRENCES_LIST_PREFIX = '  * ';
     const OCCURRENCES_LIST_SUFFIX = PHP_EOL;
@@ -62,33 +63,40 @@ abstract class PluginAbstract
     public function execute($extensionPath)
     {
         $this->_extensionPath = $extensionPath;
+        $this->_execute();
     }
 
+    /**
+     * Actual execution method, should be implemented in descendants
+     *
+     * @return void
+     */
+    abstract protected function _execute();
 
     /**
-     * @param Config $config
      * @param array $additionalOptions
      * @return array
      */
-    protected function _executePhpCommand(Config $config, array $additionalOptions)
+    protected function _executePhpCommand(array $additionalOptions)
     {
         exec('which php', $response);
         $this->_phpBin = reset($response);
 
-        if (!empty($config->phpOptions)) {
-            foreach ($config->phpOptions as $option) {
+        if (!empty($this->_config->phpOptions)) {
+            foreach ($this->_config->phpOptions as $option) {
                 $this->_phpBin .= ' -d ' . $option;
             }
         }
 
+        $execCommand = $this->_execCommand;
         if (!empty($additionalOptions)) {
             foreach ($additionalOptions as $key => $value) {
-                $this->_execCommand .= is_string($key) ? ' --' . $key . '=' . $value
+                $execCommand .= is_string($key) ? ' --' . $key . '=' . $value
                     : ' ' . $value;
             }
         }
 
-        $command = $this->_phpBin . ' ' . $this->_execCommand;
+        $command = $this->_phpBin . ' ' . $execCommand;
         $command .= !in_array($this->_extensionPath, $additionalOptions) ? ' ' . $this->_extensionPath : '';
 
         return $this->_executeCommand($command);
@@ -117,25 +125,20 @@ abstract class PluginAbstract
      */
     public function setUnfinishedIssue($reason = '')
     {
-        $message = 'Failed to execute ' . $this->_pluginName .' plugin.';
+        $message = 'Failed to execute ' . $this->_pluginName . ' plugin.';
         // if a specific reason is given, append it to the message
-        if (0 < strlen(trim($reason))) {
-            $message .= ' reason: ' . $reason;
+        if (trim($reason)) {
+            $message .= ' Reason: ' . $reason;
         }
-        IssueHandler::addIssue(new Issue(
-            array(
-                'extension' =>  $this->_extensionPath,
-                'checkname' =>  $this->_pluginName,
-                'type'      =>  'unfinished',
-                'comment'   =>  $message,
-                'failed'    =>  false
-            )
+        $this->_addIssue(array(
+            'type'    => 'unfinished',
+            'comment' => $message,
         ));
     }
 
     /**
      * @param $command
-     * @return PluginAbstract
+     * @return Plugin
      */
     public function setExecCommand($command)
     {
@@ -143,4 +146,26 @@ abstract class PluginAbstract
         return $this;
     }
 
+    /**
+     * Adds issue to result with specified type, comment, [files] and [occurrences]
+     *
+     * @param array $issue
+     * @throws \Zend_Exception
+     */
+    protected function _addIssue(array $issue)
+    {
+        if (empty($issue['comment']) || empty($issue['type'])) {
+            throw new \Zend_Exception('Attempt to add malformed issue');
+        }
+
+        IssueHandler::addIssue(new Issue(array_merge(
+            array(
+                'extension'   => $this->_extensionPath,
+                'checkname'   => $this->_pluginName,
+                'files'       => array(),
+                'occurrences' => 1,
+            ),
+            $issue
+        )));
+    }
 }

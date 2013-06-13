@@ -1,8 +1,6 @@
 <?php
 namespace CoreHacks;
 
-use Netresearch\Logger;
-use Netresearch\IssueHandler;
 use Netresearch\Plugin\CodeSniffer as Plugin;
 
 /**
@@ -14,27 +12,57 @@ class CoreHacks extends Plugin
      * Execution command
      * @var string
      */
-    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';    
+    protected $_execCommand = 'vendor/squizlabs/php_codesniffer/scripts/phpcs';
     
     /**
-     * Execute the CoreHacks plugin (entry point)
-     *
-     * @param string $extensionPath the path to the extension to check
-     * @throws \Exception
+     * Execute the CoreHacks plugin
      */
-    public function execute($extensionPath)
+    protected function _execute()
     {
-        parent::execute($extensionPath);
-        $addionalParams = array(
+        $this->_checkCoreClasses();
+        $this->_checkCoreCodePool();
+    }
+    
+    /**
+     * Looks for core classes overrides in local and community pools
+     */
+    protected function _checkCoreClasses()
+    {
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/CoreHacks',
             'extensions' => 'php',
-            'report'     => 'checkstyle',
+            'ignore'     => '*/app/code/core/*',
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
-            'Core Hack for class "%s"',
-            array('CoreHacks.Class.Override')
+            'Class "%s" has a forbidden namespace',
+            'CoreHacks.Class.Override'
         );
         $this->_addPhpCsIssues($parsedResult, 'corehack');
+    }
+    
+    /**
+     * Looks for files in "core" code pool
+     */
+    protected function _checkCoreCodePool()
+    {
+        $files = array();
+        /** @var \RecursiveDirectoryIterator $dir */
+        $dir = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->_extensionPath));
+
+        while ($dir->valid()) {
+            if (!$dir->isDot() && strpos($dir->getSubPath(), 'app/code/core') !== false) {
+                $files[] = $dir->getSubPathname();
+            }
+            $dir->next();
+        }
+        if (!empty($files)) {
+            $this->_addIssue(array(
+                'type'        => 'corehack',
+                'comment'     => 'Usage of "core" code pool',
+                'files'       => $files,
+                'occurrences' => count($files),
+            ));
+        }
     }
 }
