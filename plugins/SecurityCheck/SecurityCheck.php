@@ -19,7 +19,7 @@ class SecurityCheck extends Plugin
         $this->_checkGlobalVariables();
         $this->_checkOutput();
         $this->_checkForSQLQueries();
-        $this->_checkDangerousFunctions();
+        $this->_checkAvoidableFunctionsCalls();
     }
     
     /**
@@ -90,13 +90,13 @@ class SecurityCheck extends Plugin
      * Check for dangerous functions usage
      *  - shell interactions
      */
-    protected function _checkDangerousFunctions()
+    protected function _checkAvoidableFunctionsCalls()
     {
-        $addionalParams = array(
+        $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/Functions',
             'extensions' => 'php,phtml',
         );
-        $csResults = $this->_executePhpCommand($this->_config, $addionalParams);
+        $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
             'Avoidable function "%s" call',
             array(
@@ -105,6 +105,7 @@ class SecurityCheck extends Plugin
                 'Functions.AvoidableCalls.Eval',
                 'Functions.AvoidableCalls.Header',
                 'Functions.AvoidableCalls.Mail',
+                'Functions.AvoidableCalls.Mysql',
                 'Functions.AvoidableCalls.Shell',
                 'Functions.AvoidableCalls.Socket',
             )
