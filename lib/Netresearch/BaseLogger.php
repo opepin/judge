@@ -119,7 +119,7 @@ class BaseLogger
         );
     }
 
-    public static function log($message, array $args = array(), $type=null)
+    public static function log($message, array $args = array())
     {
         self::writeln($message, $args, self::TYPE_NOTICE);
     }

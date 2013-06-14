@@ -68,7 +68,8 @@ class Config extends \Zend_Config_Ini
     public function getTempDirPath()
     {
         if (empty($this->_tempDirPath)) {
-            $path = $this->common->tempdir ? $this->common->tempdir : $this->getBaseDirPath() . 'tmp';
+            $path = (!empty($this->common) && $this->common->tempdir)
+                ? $this->common->tempdir : ($this->getBaseDirPath() . 'tmp');
             $this->_tempDirPath = realpath($path) . DIRECTORY_SEPARATOR;
         }
         return $this->_tempDirPath;
