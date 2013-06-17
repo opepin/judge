@@ -95,17 +95,24 @@ class SecurityCheck extends Plugin
         $options = array(
             'standard'   => __DIR__ . '/CodeSniffer/Standards/Functions',
             'extensions' => 'php,phtml',
+            'ignore'     => '*/lib/*'
         );
         $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
-            'Avoidable function "%s" call',
+            array(
+                'Avoidable function "%s" call',
+                'Functions.AvoidableCalls.IncludeRequire'   => 'Avoidable statement "%s" usage',
+                'Functions.AvoidableCalls.RequireOnce'      => 'Avoidable statement "%s" usage',
+            ),
             array(
                 'Functions.AvoidableCalls.Config',
                 'Functions.AvoidableCalls.Cookie',
                 'Functions.AvoidableCalls.Eval',
                 'Functions.AvoidableCalls.Header',
+                'Functions.AvoidableCalls.IncludeRequire',
                 'Functions.AvoidableCalls.Mail',
                 'Functions.AvoidableCalls.Mysql',
+                'Functions.AvoidableCalls.RequireOnce',
                 'Functions.AvoidableCalls.Shell',
                 'Functions.AvoidableCalls.Socket',
             )
