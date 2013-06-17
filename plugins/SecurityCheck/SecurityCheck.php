@@ -79,9 +79,17 @@ class SecurityCheck extends Plugin
             'ignore'     => '*/lib/*'
         );
         $csResults = $this->_executePhpCommand($options);
-        $parsedResult = $this->_parsePhpCsResult($csResults,
-            'Raw %s query',
-            array('SQL.RawSQL.Select', 'SQL.RawSQL.Delete', 'SQL.RawSQL.Update', 'SQL.RawSQL.Insert')
+        $parsedResult = array_merge(
+            $this->_parsePhpCsResult(
+                $csResults,
+                'Raw %s query',
+                array('SQL.RawSQL.Select', 'SQL.RawSQL.Delete', 'SQL.RawSQL.Update', 'SQL.RawSQL.Insert')
+            ),
+            $this->_parsePhpCsResult(
+                $csResults,
+                'Database schema update construction %s placed not in install/update scripts;',
+                array('SQL.SchemaChange.SchemaChange')
+            )
         );
         $this->_addPhpCsIssues($parsedResult, 'sql');
     }
