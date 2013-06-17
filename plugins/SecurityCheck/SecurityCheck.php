@@ -99,7 +99,11 @@ class SecurityCheck extends Plugin
         );
         $csResults = $this->_executePhpCommand($options);
         $parsedResult = $this->_parsePhpCsResult($csResults,
-            'Avoidable function "%s" call',
+            array(
+                'Avoidable function "%s" call',
+                'Functions.AvoidableCalls.IncludeRequire'   => 'Avoidable statement "%s" used',
+                'Functions.AvoidableCalls.RequireOnce'      => 'Avoidable statement "%s" used',
+            ),
             array(
                 'Functions.AvoidableCalls.Config',
                 'Functions.AvoidableCalls.Cookie',

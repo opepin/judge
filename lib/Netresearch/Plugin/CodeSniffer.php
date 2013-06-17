@@ -34,6 +34,8 @@ abstract class CodeSniffer extends Plugin
         $result = array();
         $sourceToListen = (array) $sourceToListen;
         $phpcsOutput = implode('', $phpcsOutput);
+        $commentFormat = (array)$commentFormat;
+        $defaultComment = array_shift($commentFormat);
 
         if (!($xml = $this->_simplexml_load($phpcsOutput))
             || !($files = $xml->xpath('file'))) {
@@ -54,21 +56,22 @@ abstract class CodeSniffer extends Plugin
                     continue;
                 }
                 $message = $this->_parsePhpCsMessage((string) $error->attributes()->message);
-                if (!array_key_exists($message, $result)) {
-                    $result[$message] = array();
+                if (!array_key_exists($source, $result)) {
+                    $result[$source] = array('message' => $message, 'files' => array());
                 }
-                $result[$message][] = $filename . ':' . (string) $error->attributes()->line;
+                $result[$source]['files'][] = $filename . ':' . (string) $error->attributes()->line;
             }
         }
-
+        
         $issues = array();
-        foreach ($result as $message => $files) {
-            $occurrences = count($files);
-            $files = array_unique($files);
+        foreach ($result as $source => $entry) {
+            $occurrences = count($entry['files']);
+            $files = array_unique($entry['files']);
             sort($files);
+            $messageCommentFormat = array_key_exists($source, $commentFormat) ? $commentFormat[$source] : $defaultComment;
             $issues[] = array(
                 'files'       => $files,
-                'comment'     => sprintf($commentFormat, $message),
+                'comment'     => sprintf($messageCommentFormat, $entry['message']),
                 'occurrences' => $occurrences,
             );
         }
