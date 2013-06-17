@@ -154,8 +154,10 @@ abstract class Plugin
      */
     protected function _addIssue(array $issue)
     {
-        if (empty($issue['comment']) || empty($issue['type'])) {
-            throw new \Zend_Exception('Attempt to add malformed issue');
+        if (!isset($issue['comment']) || empty($issue['type'])) {
+            $error = 'Attempt to add malformed issue';
+            $this->_logWithBackTrace($error);
+            throw new \Zend_Exception($error);
         }
 
         IssueHandler::addIssue(new Issue(array_merge(
@@ -179,16 +181,31 @@ abstract class Plugin
     {
         libxml_use_internal_errors(true);
         if (!($xml = simplexml_load_string($xml))) {
-            $errors = 'Failed loading XML' . PHP_EOL;
+            $errors = 'Failed loading XML';
             foreach(libxml_get_errors() as $error) {
-                $errors .= "\t* " . trim($error->message) . PHP_EOL;
+                $errors .= PHP_EOL . "\t* " . trim($error->message);
             }
-            ob_start();
-            debug_print_backtrace();
-            $errors .= 'Back trace:' . PHP_EOL . ob_get_contents() . PHP_EOL;
-            ob_end_clean();
-            Logger::log($errors);
+            $this->_logWithBackTrace($errors);
         }
         return $xml;
+    }
+
+    /**
+     * Write log message with backtrace
+     *
+     * @param string $message
+     */
+    protected function _logWithBackTrace($message = '')
+    {
+        try {
+            throw new \Exception();
+        } catch (\Exception $e) {
+            /**
+             * the best approach to get user friendly backtrace
+             * debug_backtrace() and debug_print_backtrace() are horrible
+             */
+            $message .= PHP_EOL . 'Back trace:' . PHP_EOL . $e->getTraceAsString() . PHP_EOL;
+        }
+        Logger::log($message);
     }
 }

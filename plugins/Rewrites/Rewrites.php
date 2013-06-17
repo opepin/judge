@@ -27,7 +27,7 @@ class Rewrites extends Plugin
         $xpathFormat = '/config/global/%s//rewrite/..';
         $groupTypes = array('blocks', 'models', 'helpers');
         foreach ($configFiles as $configFile) {
-            if (!($config = $this->_simplexml_load($configFile))) {
+            if (!($config = $this->_simplexml_load(file_get_contents($configFile)))) {
                 continue;
             }
             foreach ($groupTypes as $groupType) {

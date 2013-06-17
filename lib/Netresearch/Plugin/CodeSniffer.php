@@ -23,7 +23,10 @@ abstract class CodeSniffer extends Plugin
      * Parses php code sniffer checkstyle formatted xml into array with predefined structure
      *
      * @param array $phpcsOutput
-     * @param string $commentFormat
+     * @param string | array $commentFormat
+     *  if string is passed, it would be used as comment format for all issues
+     *  if array is given, first element would be used as default comment, 
+     *      other comments would be used by pair source type => non-default comment format
      * @param array|string $sourceToListen
      * @param string $severityToListen 'warning'|'error'
      * @return array
@@ -34,6 +37,8 @@ abstract class CodeSniffer extends Plugin
         $result = array();
         $sourceToListen = (array) $sourceToListen;
         $phpcsOutput = implode('', $phpcsOutput);
+        $commentFormat = (array)$commentFormat;
+        $defaultComment = array_shift($commentFormat);
 
         if (!($xml = $this->_simplexml_load($phpcsOutput))
             || !($files = $xml->xpath('file'))) {
@@ -55,20 +60,22 @@ abstract class CodeSniffer extends Plugin
                 }
                 $message = $this->_parsePhpCsMessage((string) $error->attributes()->message);
                 if (!array_key_exists($message, $result)) {
-                    $result[$message] = array();
+                    $result[$message] = array('source' => $source, 'files' => array());
                 }
-                $result[$message][] = $filename . ':' . (string) $error->attributes()->line;
+                $result[$message]['files'][] = $filename . ':' . (string) $error->attributes()->line;
             }
         }
-
+        
         $issues = array();
-        foreach ($result as $message => $files) {
-            $occurrences = count($files);
-            $files = array_unique($files);
+        foreach ($result as $comment => $entry) {
+            $occurrences = count($entry['files']);
+            $files = array_unique($entry['files']);
             sort($files);
+            $messageCommentFormat = array_key_exists($entry['source'], $commentFormat) ?
+                $commentFormat[$entry['source']] : $defaultComment;
             $issues[] = array(
                 'files'       => $files,
-                'comment'     => sprintf($commentFormat, $message),
+                'comment'     => sprintf($messageCommentFormat, $comment),
                 'occurrences' => $occurrences,
             );
         }
