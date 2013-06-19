@@ -1,8 +1,6 @@
 <?php
 namespace CheckComments;
 
-use Netresearch\Logger;
-use Netresearch\IssueHandler;
 use Netresearch\Plugin\Plugin as Plugin;
 
 class CheckComments extends Plugin
@@ -38,7 +36,7 @@ class CheckComments extends Plugin
         }
         $this->_addIssue(array(
             'type'    => 'cloc_to_ncloc',
-            'comment' => round(((float)$xml->attributes()->cloc)/$ncloc, 2),
+            'comment' => round((float)$xml->attributes()->cloc / $ncloc, 2),
         ));        
     }
 }
