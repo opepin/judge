@@ -124,7 +124,7 @@ class SourceCodeComplexity extends Plugin
         $this->_addIssue(array(
             'type'        => 'duplicated_code',
             'files'       => $clones->getFilesWithClones(),
-            'comment'     => $clones->getPercentage(),
+            'comment'     => round((float)$clones->getPercentage(), 2),
             'occurrences' => $clones->count()
         ));
     }
