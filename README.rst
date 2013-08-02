@@ -3,6 +3,7 @@ Judge
 =====
 
 Judge is a tool to examine Magento extensions regarding their qualitiy and compatibility.
+There also exists a `webend for Judge <http://judge.nr-apps.com/>`_ where you don't need to install the tool if you only want to try it.
 
 Installation
 ============
