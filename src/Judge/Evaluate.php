@@ -239,7 +239,8 @@ class Evaluate extends Command
         include($targetFile);
         $result = ob_get_contents();
         ob_end_clean();
-        $targetHtml = 'tmp/result.html';
+        $p = array_reverse (explode("/", $extension));	
+        $targetHtml = 'tmp/' . $p[1] . '_' . $p[0] . '_result.html';
         file_put_contents($targetHtml, $result);
     }
 
