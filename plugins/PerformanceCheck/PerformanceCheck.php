@@ -89,6 +89,11 @@ class PerformanceCheck extends Plugin
     protected function _collectPerformanceKillers($xmlTree, $fileName)
     {
         $possiblePerformanceLeaks = array();
+	if ($xmlTree == null) 
+        {
+            echo $fileName . ' skipped';
+            return $possiblePerformanceLeaks;
+        }
         $stmts = array('Stmt_Foreach', 'Stmt_For', 'Stmt_While', 'Stmt_Do');
         foreach ($stmts as $stmt) {
             $saveStmtXpath  = "//node:$stmt//node:Expr_MethodCall[subNode:name/scalar:string/text()='save']";

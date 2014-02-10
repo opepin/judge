@@ -114,7 +114,7 @@ abstract class Plugin
 
         if ($status == 255) {
             $this->setUnfinishedIssue();
-            throw new \Zend_Exception('Failed to execute ' . $this->_pluginName .' plugin.');
+            throw new \Zend_Exception('Failed to execute ' . $this->_pluginName .' plugin.' . $command);
         }
 
         return $response;
